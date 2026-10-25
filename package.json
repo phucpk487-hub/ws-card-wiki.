@@ -1,0 +1,17 @@
+{
+  "name": "ws-wiki",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Weiss Schwarz card database and wiki (dependency-free web app; Capacitor wraps it as a phone app)",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node --test test/*.test.js",
+    "build:app": "node tools/build-app.mjs",
+    "build:app:user": "node tools/build-app.mjs --edition user",
+    "app:setup": "npm i -D @capacitor/cli && npm i @capacitor/core @capacitor/android @capacitor/ios @capacitor/filesystem @capacitor/share",
+    "app:android": "npm run build:app && npx cap sync android",
+    "app:android:user": "npm run build:app:user && npx cap sync android",
+    "app:ios": "npm run build:app && npx cap sync ios"
+  }
+}

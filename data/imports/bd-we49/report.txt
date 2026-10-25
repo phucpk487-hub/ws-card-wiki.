@@ -1,0 +1,8 @@
+60 cards (50 characters, 10 climax) → data/imports/bd-we49/cards.json
+power read: 49/50
+color read: 59/60
+soul filled: 49/50  (counted from the icons; fix misses in overrides.json)
+colors: {'Yellow': 13, 'Green': 11, None: 1, 'Red': 16, 'Blue': 19}
+
+Warnings:
+  - BD/WE49-21: the PDF has no image for this card

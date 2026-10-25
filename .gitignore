@@ -1,0 +1,14 @@
+node_modules/
+www/
+android/
+ios/
+# an older, unused React/TypeScript attempt
+dist/
+src/
+public/
+tests/
+build.mjs
+tsconfig.json
+artifact.html
+__pycache__/
+*.pyc

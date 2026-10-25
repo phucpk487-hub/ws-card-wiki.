@@ -1,0 +1,118 @@
+// Pure parsing of a card-sheet page model (see pdfReader.js) into card records.
+// No DOM, no pdf.js: unit-testable in Node. JS port of tools/pdf_to_cards.py (text part).
+
+export const RARITY_TOKENS = ['SSP', 'BDR', 'SP', 'SR', 'RR', 'R', 'U', 'C'];
+const NUM_RE = /^([A-Z0-9]+\/[A-Z0-9]+-\d+[A-Za-z]*)$/;
+const CHAR_HDR = /^\((\w+)\)\s+(\d+)\/(\d+)\s+(.+?)\s+\((.*)\)\s*$/;
+const CX_HDR = /^\((\w+)\)\s+(.+?)\s*CX\s*$/;
+const ABILITY = /^(AUTO|CONT|ACT)\b\s*-?\s*([\s\S]*)$/;
+
+const median = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : 0; };
+
+/** Join the words of one visual line, adding a space only where there is a real gap. */
+function lineText(words) {
+  let out = '', prev = null;
+  for (const w of words) {
+    if (prev && w.x0 - prev.x1 > 0.12 * (w.size || 6)) out += ' ';
+    out += w.str; prev = w;
+  }
+  return out.replace(/\s+/g, ' ').trim();
+}
+
+/** Group words into lines (same baseline), top to bottom, left to right. */
+function toLines(words) {
+  const sorted = [...words].sort((a, b) => a.base - b.base || a.x0 - b.x0);
+  const lines = [];
+  for (const w of sorted) {
+    const last = lines[lines.length - 1];
+    if (last && Math.abs(last.base - w.base) < 2.2) { last.words.push(w); last.size = Math.max(last.size, w.size); }
+    else lines.push({ base: w.base, size: w.size, words: [w] });
+  }
+  for (const l of lines) { l.words.sort((a, b) => a.x0 - b.x0); l.text = lineText(l.words); }
+  return lines;
+}
+
+/** Split lines into paragraphs where the vertical gap is larger than normal line spacing. */
+function toParagraphs(lines) {
+  const paras = []; let cur = [], prev = null;
+  for (const l of lines) {
+    if (prev && l.base - prev.base > 1.6 * Math.max(prev.size, 5)) { paras.push(cur.join(' ')); cur = []; }
+    cur.push(l.text); prev = l;
+  }
+  if (cur.length) paras.push(cur.join(' '));
+  return paras.map((p) => p.replace(/\s+/g, ' ').trim()).filter(Boolean);
+}
+
+export function parseBlock(number, headerLines, paras, rarities, warnings) {
+  const card = { number, rarities, effect: [], notes: [], triggers: [], traits: [], level: null, cost: null, type: null, name: null, printTag: null };
+  let header = headerLines[0] || '';
+  let rest = paras;
+  let m = CHAR_HDR.exec(header);
+  if (!m && !CX_HDR.test(header) && paras.length) { // header wrapped onto a second line
+    const joined = `${header} ${paras[0]}`;
+    if (CHAR_HDR.test(joined)) { header = joined; rest = paras.slice(1); m = CHAR_HDR.exec(header); }
+  }
+  if (m) {
+    Object.assign(card, { type: 'Character', printTag: m[1], level: +m[2], cost: +m[3], name: m[4], traits: m[5].split('/').map((t) => t.trim()).filter(Boolean) });
+  } else {
+    const cx = CX_HDR.exec(header);
+    if (cx) { const kind = cx[2].trim(); Object.assign(card, { type: 'Climax', printTag: cx[1], name: `${kind} CX`, triggers: [kind] }); }
+    else { warnings.push(`${number}: unrecognised header "${header}"`); card.name = header || number; card.type = 'Character'; }
+  }
+  for (const p of rest) {
+    if (/^note:/i.test(p)) {
+      const note = p.slice(5).trim(); card.notes.push(note);
+      const t = /Has an? (\w+) Trigger/i.exec(note);
+      if (t) { const name = t[1][0].toUpperCase() + t[1].slice(1).toLowerCase(); if (!card.triggers.includes(name)) card.triggers.push(name); }
+      continue;
+    }
+    const a = ABILITY.exec(p);
+    if (a) card.effect.push(`[${a[1]}] ${a[2]}`.trim());
+    else if (card.effect.length) card.effect[card.effect.length - 1] += ` ${p}`; // "- AUTO …" sub-abilities, "a) … b) …" choices
+    else card.effect.push(p);
+  }
+  return card;
+}
+
+/**
+ * @param pages page models from readPdf()
+ * @returns {{ cards: object[], setCode: string, warnings: string[] }}
+ *   each card carries `_img: { page, main: index|null, alts: index[] }` pointing into pages[page].images
+ */
+export function parseSheet(pages) {
+  const cards = [], warnings = [];
+  for (const page of pages) {
+    const W = page.width, H = page.height;
+    const nums = page.words.filter((w) => NUM_RE.test(w.str) && w.x0 < 0.17 * W).sort((a, b) => a.base - b.base);
+    if (!nums.length) continue;
+    const imgs = page.images.map((im, i) => ({ ...im, i }));
+    const left = imgs.filter((im) => im.x0 < 0.25 * W), right = imgs.filter((im) => im.x0 >= 0.25 * W);
+    const textLo = left.length ? Math.max(...left.map((im) => im.x1)) - 1 : 0.24 * W;
+    const textHi = right.length ? Math.min(...right.map((im) => im.x0)) - 1 : 0.55 * W;
+    const rarityLo = textHi; // images hold no text, so anything right of the text column is the rarity cell
+
+    nums.forEach((n, k) => {
+      const top = n.base - n.size - 3;
+      const bottom = k + 1 < nums.length ? nums[k + 1].base - nums[k + 1].size - 3 : H + 1;
+      const rowWords = page.words.filter((w) => w.base >= top && w.base < bottom);
+      const text = rowWords.filter((w) => w.x0 >= textLo && w.x0 < textHi);
+      const rarityText = rowWords.filter((w) => w.x0 >= rarityLo).map((w) => w.str).join(' ');
+      const rarities = (rarityText.match(new RegExp(`\\b(?:${RARITY_TOKENS.join('|')})\\b`, 'g')) || []);
+      const lines = toLines(text);
+      const headerLines = lines.length ? [lines[0].text] : [];
+      const paras = toParagraphs(lines.slice(1));
+      const card = parseBlock(n.str, headerLines, paras, rarities, warnings);
+
+      // images whose top edge is closest to this row
+      const nearest = (im) => nums.reduce((best, m2, j) => (Math.abs(im.top - (m2.base - m2.size)) < Math.abs(im.top - (nums[best].base - nums[best].size)) ? j : best), 0);
+      const mine = imgs.filter((im) => nearest(im) === k);
+      const main = mine.find((im) => im.x0 < 0.25 * W);
+      card._img = { page: page.index, main: main ? main.i : null, alts: mine.filter((im) => im !== main).map((im) => im.i) };
+      cards.push(card);
+    });
+  }
+  const seen = new Set();
+  for (const c of cards) { if (seen.has(c.number)) warnings.push(`duplicate card number ${c.number}`); seen.add(c.number); }
+  const setCode = cards.length ? cards[0].number.replace(/-\d+[A-Za-z]*$/, '') : '';
+  return { cards, setCode, warnings };
+}

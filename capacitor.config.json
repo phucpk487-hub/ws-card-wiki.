@@ -1,0 +1,8 @@
+{
+  "appId": "app.wsw.cardwiki",
+  "appName": "Weiss Schwarz Card Wiki",
+  "webDir": "www",
+  "server": { "androidScheme": "https" },
+  "android": { "allowMixedContent": false },
+  "ios": { "contentInset": "always" }
+}
