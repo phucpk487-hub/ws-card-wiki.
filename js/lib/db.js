@@ -47,7 +47,7 @@ export function loadDb() {
     const imported = await loadImports();
     const mine = await loadUserPacks().catch(() => []); // cards imported in this browser
     const packs = [...(imported ? imported.packs : []), ...mine.map((p) => ({ ...p, _mine: true }))];
-    const useSample = packs.length === 0 || (imported && imported.includeSample);
+    const useSample = !!(imported && imported.includeSample);
     const byNumber = new Map(), setMap = new Map();
     if (useSample) {
       for (const c of CARDS) byNumber.set(c.number, { ...c });

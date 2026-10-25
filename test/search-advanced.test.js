@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { searchCards, parseQuery, describeClause, buildFacets, paramsToQuery, queryToParams } from '../js/lib/search.js';
 
 // Real imported pack: has Characters with power/soul, Events/Climax and icon triggers.
-const pack = JSON.parse(readFileSync(new URL('../data/imports/bd-we49/cards.json', import.meta.url), 'utf8'));
+const pack = JSON.parse(readFileSync(new URL('./fixtures/bd-we49/cards.json', import.meta.url), 'utf8'));
 const CARDS = pack.cards || pack;
 const q = (query, extra = {}) => searchCards(CARDS, { q: query, pageSize: 500, ...extra });
 const all = (query) => q(query).items;

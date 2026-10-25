@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { parseSheet } from '../js/import/parse.js';
 
 const fx = new URL('./fixtures/bd-we49-pages.json', import.meta.url);
-const expectedUrl = new URL('../data/imports/bd-we49/cards.json', import.meta.url);
+const expectedUrl = new URL('./fixtures/bd-we49/cards.json', import.meta.url);
 const ready = existsSync(fx) && existsSync(expectedUrl);
 
 test('browser parser matches the Python converter on the BD/WE49 sheet', { skip: !ready }, () => {

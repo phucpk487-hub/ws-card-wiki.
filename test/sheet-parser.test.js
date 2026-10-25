@@ -4,7 +4,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { parseSheetPages, guessSetCode, toAppCard } from '../js/lib/sheet-parser.js';
 
 const pages = JSON.parse(readFileSync(new URL('./fixtures/sheet-pages.json', import.meta.url), 'utf8')).pages;
-const pyPath = new URL('../data/imports/bd-we49/cards.json', import.meta.url);
+const pyPath = new URL('./fixtures/bd-we49/cards.json', import.meta.url);
 
 test('parses all 60 cards in order with their images', () => {
   const { cards, imageRefs, warnings } = parseSheetPages(pages);

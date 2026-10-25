@@ -56,6 +56,9 @@ export async function render({ db, query }) {
     state.page = r.page;
     const from = r.total ? (r.page - 1) * r.pageSize + 1 : 0, to = Math.min(r.total, r.page * r.pageSize);
     const head = `<div class="result-head" role="status" aria-live="polite">${r.total ? `Showing ${from}–${to} of <strong>${r.total}</strong> card${r.total === 1 ? '' : 's'}` : 'No cards found'}</div>`;
+    if (!r.total && !db.cards.length) {
+      return head + emptyState('No cards yet', 'Import a card list PDF to add your first set.', '<a class="btn primary" href="#/import">Import a set</a>');
+    }
     if (!r.total) {
       return head + emptyState('No cards match your search', 'Try removing a filter, checking your spelling, or searching for a shorter phrase.',
         '<button class="btn" data-clear-all>Reset search and filters</button>');

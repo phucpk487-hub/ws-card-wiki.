@@ -3,7 +3,7 @@
 Build js/data/digit-templates.js (used by the in-app importer to read the power box)
 from converted cards whose power values you have verified.
 
-  python3 tools/build_digit_templates.py data/imports/bd-we49/cards.json
+  python3 tools/build_digit_templates.py <your pack>/cards.json
 
 Only cards with a main image and a numeric power are used, so run it after checking
 overrides.json. It also writes test/fixtures/power-crops.json for the unit tests.

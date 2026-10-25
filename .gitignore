@@ -12,3 +12,6 @@ tsconfig.json
 artifact.html
 __pycache__/
 *.pyc
+
+# card packs made by the converter hold publisher artwork: keep them out of the repository
+data/imports/*/

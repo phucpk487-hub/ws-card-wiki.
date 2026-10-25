@@ -2,6 +2,17 @@ import { esc, cardTile, colorDot, COLOR_HEX, searchHref, setHref, formatDate } f
 import { buildFacets } from '../lib/search.js';
 
 export async function render({ db }) {
+  if (!db.cards.length) {
+    return {
+      title: 'Welcome',
+      html: `<section class="hero"><div class="container narrow">
+        <h1>Weiss Schwarz <span class="accent">Card Wiki</span></h1>
+        <p class="lead">Your card database is empty. Import a card list PDF to get started: the app reads it on this device and keeps the cards for offline use.</p>
+        <p><a class="btn primary" href="#/import">Import your first set</a></p>
+        <p class="muted small">Once you have cards, you can search them, browse sets and build decks.</p>
+      </div></section>`,
+    };
+  }
   const f = buildFacets(db.cards);
   const pick = db.cards[Math.floor(Math.random() * db.cards.length)];
   const sets = [...db.sets].sort((a, b) => b.releaseDate.localeCompare(a.releaseDate)).slice(0, 4);

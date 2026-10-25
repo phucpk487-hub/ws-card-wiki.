@@ -3,10 +3,9 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { searchCards } from '../js/lib/search.js';
 
-const idxPath = new URL('../data/imports/index.json', import.meta.url);
-const packs = existsSync(idxPath)
-  ? JSON.parse(readFileSync(idxPath, 'utf8')).packs.map((p) => JSON.parse(readFileSync(new URL(`../${p}`, import.meta.url), 'utf8')))
-  : [];
+// The converter's output for a real sheet (card text only, no images) is kept as a test fixture.
+const fx = new URL('./fixtures/bd-we49/cards.json', import.meta.url);
+const packs = existsSync(fx) ? [JSON.parse(readFileSync(fx, 'utf8'))] : [];
 
 test('imported packs have the shape the app expects', { skip: packs.length === 0 }, () => {
   const seen = new Set();

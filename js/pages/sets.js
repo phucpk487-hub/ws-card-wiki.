@@ -37,7 +37,8 @@ export async function render({ db, path, query, navigate }) {
         list = [...list].sort(sort === 'name' ? (a, b) => a.name.localeCompare(b.name) : sort === 'old' ? (a, b) => a.releaseDate.localeCompare(b.releaseDate) : (a, b) => b.releaseDate.localeCompare(a.releaseDate));
         root.querySelector('#slist').innerHTML = list.length
           ? `<div class="cards-3">${list.map(setCard).join('')}</div>`
-          : emptyState('No sets found', 'No set matches that filter.', '<button class="btn" data-reset>Reset filters</button>');
+          : db.sets.length ? emptyState('No sets found', 'No set matches that filter.', '<button class="btn" data-reset>Reset filters</button>')
+            : emptyState('No sets yet', 'Import a card list PDF to add your first set.', '<a class="btn primary" href="#/import">Import a set</a>');
         const params = new URLSearchParams(); if (q) params.set('q', q); if (type) params.set('type', type); if (sort !== 'new') params.set('sort', sort);
         history.replaceState(null, '', `#/sets${params.toString() ? `?${params}` : ''}`);
       };
