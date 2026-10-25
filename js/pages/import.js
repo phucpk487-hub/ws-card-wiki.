@@ -4,7 +4,6 @@ import { detectColor, powerCrop, nameCrop, soulCount, hasSoulTrigger, readPowerC
 import { powerTemplates, learnPower } from '../import/powerLearn.js';
 import { savePack, deletePack, listPacks } from '../import/store.js';
 import { resetDb } from '../lib/db.js';
-import { ADMIN_NOTE } from '../lib/config.js';
 import { setsToJson, setsFromJson } from '../lib/backup.js';
 import { saveFile } from '../lib/files.js';
 import { requestPersistence } from '../lib/persist.js';
@@ -56,7 +55,6 @@ class Importer {
         <button class="btn primary" type="submit">Read PDF</button>
       </form>
       <h2>Imported sets</h2>
-      <p class="muted small">Deleting a set is for admins. ${esc(ADMIN_NOTE)}</p>
       <div id="imp-list">${saved.length ? `<ul class="list">${saved.map((p) => `<li class="imp-row"><div><a href="${setHref(p.set.code)}"><strong>${esc(p.set.name)}</strong></a>
         <div class="muted small">${esc(p.set.code)} · ${p.count} cards · saved ${formatDate(new Date(p.savedAt).toISOString().slice(0, 10))}</div></div>
         <button class="btn" data-del="${esc(p.id)}">Delete</button></li>`).join('')}</ul>`

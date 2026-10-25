@@ -1,38 +1,29 @@
 # Building the phone app (Capacitor)
 
-The web app is wrapped as a native app with [Capacitor](https://capacitorjs.com). Everything is bundled inside the app, so it
-works offline. Building needs your own computer: **Node 20+**, and **Android Studio** (Android) or **Xcode on a Mac** (iPhone).
+The web app is wrapped as an Android app with [Capacitor](https://capacitorjs.com). Everything is bundled inside the app,
+so it works offline. Everyone who installs it can import their own card sets from PDFs; there is no shared online database.
 
-## One-time setup
+## Build online (no PC needed)
+The repository has a GitHub Actions workflow (`.github/workflows/android.yml`). Every push to `main` builds the app and
+publishes `ws-card-wiki.apk` on the repository's **Releases** page (tag `latest`). You can also start it by hand:
+**Actions > Build Android app > Run workflow**. On the phone, download the `.apk` from the release and open it
+(allow "install unknown apps" for your browser once).
+
+## Build on your own computer
+Needs Node 20+, Java 21 and Android Studio.
 ```
 npm run app:setup          # installs Capacitor (latest) and the file/share plugins
-npx cap add android        # and/or: npx cap add ios
+npx cap add android
+npm run app:android        # builds www/ and copies it into the Android project
+npx cap open android       # Android Studio: Run, or Build > Build APK
 ```
 Before you publish to a store, change `appId` in `capacitor.config.json` (now `app.wsw.cardwiki`) to an id you own.
 
-## Build and run
-```
-npm run app:android        # admin edition: builds www/ and copies it into the Android project
-npx cap open android       # opens Android Studio -> press Run, or Build > Build APK
-```
-`npm run app:ios` then `npx cap open ios` does the same for iPhone.
-
-## Two editions
-| | Admin | User |
-|---|---|---|
-| Command | `npm run app:android` | `npm run app:android:user` |
-| Import PDFs, delete sets | yes | no (pages, PDF engine and routes are left out) |
-| Decks, search, sets | yes | yes |
-
-Both build from the same code; `tools/build-app.mjs --edition user|admin` flips `ADMIN` in `js/lib/config.js`.
-Sets imported in the admin app do **not** reach user apps yet: that needs the shared online store (not built).
-
 ## Keeping your data
 * The app asks the device to keep its data (`navigator.storage.persist()`), but a device can still clear it when space is short.
-* **Decks** page: *Back up all decks* / *Restore backup*. **Import** page (admin): *Back up sets* / *Restore sets*.
-* Saving the backup file inside the phone app uses the Filesystem and Share plugins installed by `app:setup`. This path has not been tried on a real phone yet.
+* **Decks** page: *Back up all decks* / *Restore backup*. **Import** page: *Back up sets* / *Restore sets*.
+* Saving a backup file inside the phone app uses the Filesystem and Share plugins installed by `app:setup`. Not yet tried on a real phone.
 
 ## Not yet done
-* App icon and splash screen (the app uses the placeholder icon in `icons/icon.svg`; generate real ones with `@capacitor/assets`).
-* Testing on real Android/iOS devices.
-* The shared online store for the admin -> user update.
+* A real app icon and splash screen (placeholder icon in `icons/icon.svg`; generate with `@capacitor/assets`).
+* A signed release build for the Play Store (the workflow makes a debug build for installing directly).

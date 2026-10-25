@@ -1,4 +1,4 @@
-# Builds an installable Android test app (APK) and publishes it as a GitHub Release you can download on your phone.
+# Builds an installable Android app (APK) and publishes it as a GitHub Release you can download on your phone.
 # Runs on every push to main, or by hand: Actions tab > "Build Android app" > Run workflow.
 name: Build Android app
 
@@ -6,12 +6,6 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      edition:
-        description: 'Which edition to build'
-        type: choice
-        options: [admin, user]
-        default: admin
 
 permissions:
   contents: write
@@ -19,8 +13,6 @@ permissions:
 jobs:
   apk:
     runs-on: ubuntu-latest
-    env:
-      EDITION: ${{ github.event.inputs.edition || 'admin' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -36,8 +28,8 @@ jobs:
       - name: Run the tests
         run: npm test
 
-      - name: Package the web app (${{ env.EDITION }} edition)
-        run: node tools/build-app.mjs --edition "$EDITION"
+      - name: Package the web app
+        run: node tools/build-app.mjs
 
       - name: Install Capacitor and create the Android project
         run: |
@@ -54,8 +46,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk "ws-card-wiki-${EDITION}.apk"
-          gh release delete "latest-${EDITION}" --yes --cleanup-tag || true
-          gh release create "latest-${EDITION}" "ws-card-wiki-${EDITION}.apk" \
-            --title "Android app (${EDITION} edition)" \
+          cp android/app/build/outputs/apk/debug/app-debug.apk ws-card-wiki.apk
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest ws-card-wiki.apk \
+            --title "Android app" \
             --notes "Debug build of commit ${GITHUB_SHA::7}. Download the .apk on your phone and open it to install."

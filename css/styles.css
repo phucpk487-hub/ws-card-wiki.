@@ -290,11 +290,11 @@ details.panel { margin: 14px 0; } details.panel summary { cursor: pointer; }
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* Admin-only controls */
+/* Set management */
 .btn.danger { color: var(--surface); background: var(--danger); border-color: transparent; }
 .btn.danger:hover { filter: brightness(.92); }
-.admin-zone { margin-top: 28px; border-style: dashed; }
-.admin-zone h2 { margin-top: 0; font-size: 1rem; }
+.manage-zone { margin-top: 28px; border-style: dashed; }
+.manage-zone h2 { margin-top: 0; font-size: 1rem; }
 
 .imp-table td.jp-cell:nth-child(7) { min-width: 340px; } .imp-table .crop.wide { height: auto; width: 100%; max-width: 320px; background: transparent; }
 
@@ -314,3 +314,4 @@ details.panel { margin: 14px 0; } details.panel summary { cursor: pointer; }
 .site-header { padding-top: env(safe-area-inset-top); }
 body { padding-bottom: env(safe-area-inset-bottom); }
 .toolbar .grow { flex: 1; }
+

@@ -1,4 +1,3 @@
-import { ADMIN } from './lib/config.js';
 import { loadDb } from './lib/db.js';
 import { requestPersistence } from './lib/persist.js';
 import { parseHash } from './lib/router.js';
@@ -29,7 +28,6 @@ async function route() {
   const key = path[0] || '';
   const nav = NAV_OF[key] ?? key;
   document.querySelectorAll('[data-nav]').forEach((a) => {
-    if (a.dataset.nav === 'import' && !ADMIN) { a.remove(); return; }
     const on = a.dataset.nav === nav;
     a.classList.toggle('active', on);
     if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
@@ -39,7 +37,7 @@ async function route() {
 
   main.innerHTML = skeletonPage();
   try {
-    const loader = key === 'import' && !ADMIN ? null : ROUTES[key]; // import is admin-only
+    const loader = ROUTES[key];
     if (!loader) {
       main.innerHTML = `<div class="container">${emptyState('Page not found', 'That page does not exist.', '<a class="btn primary" href="#/">Go home</a>')}</div>`;
       document.title = 'Not found · Weiss Schwarz Card Wiki';

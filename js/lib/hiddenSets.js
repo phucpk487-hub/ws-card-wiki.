@@ -1,4 +1,4 @@
-// Sets an admin has deleted from the bundled data (those files cannot be removed from the browser, so they are hidden instead).
+// Sets deleted from the bundled data (those files cannot be removed from the browser, so they are hidden instead).
 const KEY = 'wsw-hidden-sets-v1';
 let mem = null;
 const read = () => {

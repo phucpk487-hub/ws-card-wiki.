@@ -57,7 +57,7 @@ export function loadDb() {
       for (const c of pack.cards) byNumber.set(c.number, { ...c });
       setMap.set(pack.set.code, { ...pack.set, source: pack._mine ? 'imported' : 'bundled', packId: pack._mine ? pack.id : null });
     }
-    const hidden = new Set(hiddenSets()); // sets an admin deleted
+    const hidden = new Set(hiddenSets()); // sets the person deleted
     const cards = [...byNumber.values()].filter((c) => !hidden.has(c.set));
     const setList = [...setMap.values()].filter((s) => !hidden.has(s.code));
     validate(cards);

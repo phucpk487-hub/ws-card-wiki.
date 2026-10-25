@@ -1,6 +1,5 @@
 import { cardsInSet } from '../lib/db.js';
 import { filterText } from '../lib/search.js';
-import { ADMIN, ADMIN_NOTE } from '../lib/config.js';
 import { deleteSet } from '../lib/setAdmin.js';
 import { esc, cardTile, chip, emptyState, formatDate, setHref, searchHref } from '../lib/ui.js';
 
@@ -79,9 +78,8 @@ function renderDetail(db, code, navigate) {
       <div class="section-head"><h2>Cards</h2>${cards.length ? `<a href="${searchHref({ sets: set.code })}">Open in card search →</a>` : ''}</div>
       ${cards.length ? `<div class="grid">${cards.map(cardTile).join('')}</div>`
         : emptyState(set.upcoming ? 'Not released yet' : 'No cards added yet', set.upcoming ? 'Card data will appear here once this set is revealed.' : 'This set has no card data in the database yet.')}
-      ${ADMIN ? `<section class="panel admin-zone" aria-labelledby="adm"><h2 id="adm">Admin</h2>
-        <p class="muted small">${esc(ADMIN_NOTE)}</p>
-        <div id="del-area"><button class="btn danger" id="del-open">Delete set…</button></div></section>` : ''}
+      <section class="panel manage-zone" aria-labelledby="adm"><h2 id="adm">Manage this set</h2>
+        <div id="del-area"><button class="btn danger" id="del-open">Delete set…</button></div></section>
     </div>`,
     mount(root) {
       const area = root.querySelector('#del-area'); if (!area) return;
