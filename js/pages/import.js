@@ -1,6 +1,6 @@
 import { readPdf } from '../import/pdfReader.js';
 import { parseSheet } from '../import/parse.js';
-import { detectColor, powerCrop, nameCrop, soulCount, hasSoulTrigger, readPowerCanvas, toBlob } from '../import/images.js';
+import { detectColor, powerCrop, nameCrop, soulCount, hasSoulTrigger, detectTrigger, readPowerCanvas, toBlob } from '../import/images.js';
 import { powerTemplates, learnPower } from '../import/powerLearn.js';
 import { savePack, deletePack, listPacks } from '../import/store.js';
 import { resetDb } from '../lib/db.js';
@@ -137,6 +137,10 @@ class Importer {
           if (card.type === 'Character') { item.crop = powerCrop(canvas); item.soul = soulCount(canvas); const pw = readPowerCanvas(canvas, templates); item.power = pw.value; item.glyphs = pw.glyphs; }
           item.soulTrigger = card.type !== 'Climax' && hasSoulTrigger(canvas);
           if (item.soulTrigger && !card.triggers.includes('Soul')) card.triggers.push('Soul');
+          else if (card.type !== 'Climax' && !card.triggers.length) {
+            const t = detectTrigger(canvas);
+            if (t) { card.triggers.push(t); item.triggerGuess = t; }
+          }
           item.mainBlob = await toBlob(canvas);
           item.url = URL.createObjectURL(item.mainBlob); this.urls.push(item.url);
         } else { card.color = null; this.warnings.push(`${card.number}: the PDF has no image for this card.`); }
@@ -194,7 +198,7 @@ class Importer {
         <div id="save-err" class="state error" role="alert" hidden></div>
       </div>
       ${this.warnings.length ? `<details class="panel"><summary>${this.warnings.length} note${this.warnings.length === 1 ? '' : 's'} from reading the PDF</summary><ul>${this.warnings.map((w) => `<li>${esc(w)}</li>`).join('')}</ul></details>` : ''}
-      <p class="muted small">Soul is counted from the icons on the card; please glance over it. The Soul trigger icon is detected too, but other trigger icons are not, so add those by hand. Power is read from the number on the card; compare it with the zoomed crop, and type it in when it is empty. A digit the reader has never seen (such as 3) is learned after you type it once. Press Enter in a power box to jump to the next card.</p>
+      <p class="muted small">Soul is counted from the icons on the card; please glance over it. Trigger icons (Soul, Treasure, Pool, Gate, Come Back, Draw, Shot, Standby, Choice, Bounce) are recognised from the top-right icon; check them, especially Bounce and Standby, and add any other kind by hand. Power is read from the number on the card; compare it with the zoomed crop, and type it in when it is empty. A digit the reader has never seen (such as 3) is learned after you type it once. Press Enter in a power box to jump to the next card.</p>
       <div class="table-wrap"><table class="data imp-table"><thead><tr><th></th><th>Card</th><th>Power</th><th>Soul</th><th>Color</th><th>Trigger</th><th>Name (JP)</th></tr></thead><tbody id="rows">${rows}</tbody></table></div>
       <datalist id="trig-list">${TRIGGERS.map((t) => `<option value="${t}">`).join('')}</datalist>`;
     this.updateMissing();

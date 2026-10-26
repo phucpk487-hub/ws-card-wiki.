@@ -1,5 +1,6 @@
 // Canvas helpers for imported card images (color detection, power reading, soul counting, compression).
 import { bandRect, readPower } from './power.js';
+import { classifyTrigger } from './trigger.js';
 
 /** Card color from the hue of the nameplate bar. Returns a color name or null. */
 export function detectColor(canvas) {
@@ -60,6 +61,16 @@ export function hasSoulTrigger(canvas) {
   let dark = 0, n = 0;
   for (let i = 0; i < data.length; i += 4, n++) if (Math.max(data[i], data[i + 1], data[i + 2]) / 255 < .22) dark++;
   return dark / n >= .08;
+}
+
+/** Name of the coloured (non-Soul) trigger icon in the top-right slot, e.g. 'Treasure', or null. See trigger.js. */
+export function detectTrigger(canvas) {
+  if (canvas.width > canvas.height) return null;
+  try {
+    const { width: w, height: h } = canvas;
+    const r = classifyTrigger(canvas.getContext('2d').getImageData(0, 0, w, h).data, w, h);
+    return r ? r.type : null;
+  } catch { return null; }
 }
 
 /** Read the printed power with the template matcher in power.js. Returns { value, glyphs, digits, ok }. */
