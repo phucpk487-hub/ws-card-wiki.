@@ -1,7 +1,7 @@
 import { readPdf } from '../import/pdfReader.js';
 import { parseSheet } from '../import/parse.js';
 import { detectColor, powerCrop, nameCrop, soulCount, hasSoulTrigger, detectTrigger, readPowerCanvas, toBlob } from '../import/images.js';
-import { powerTemplates, learnPower } from '../import/powerLearn.js';
+import { powerTemplates, learnPower, learnedDigitsText } from '../import/powerLearn.js';
 import { savePack, deletePack, listPacks } from '../import/store.js';
 import { resetDb } from '../lib/db.js';
 import { setsToJson, setsFromJson } from '../lib/backup.js';
@@ -63,6 +63,11 @@ class Importer {
         <p class="muted small">Browsers can clear saved data when the device is short on space. Keep a backup file of your imported sets, and restore it here if they ever disappear. <span id="persist-note"></span></p>
         <div class="toolbar"><button class="btn" id="bk-save" ${saved.length ? '' : 'disabled'}>Back up sets</button><label class="btn" for="bk-file">Restore sets</label><input id="bk-file" type="file" accept="application/json,.json" hidden></div>
         <p id="bk-msg" class="muted small" role="status"></p></div>
+      <details class="panel" id="ld-panel"><summary><strong>Learned digits</strong></summary>
+        <p class="muted small">Digits this app has learned from your corrections (for example the 3 in 3000 power). Copy the text and send it to whoever maintains the app so it can be built in for everyone.</p>
+        <textarea id="ld-text" rows="4" readonly aria-label="Learned digits" style="width:100%"></textarea>
+        <div class="toolbar"><button class="btn" id="ld-copy" type="button">Copy</button></div>
+        <p id="ld-msg" class="muted small" role="status"></p></details>
       ${hiddenSets().length ? `<h2>Hidden sets</h2><ul class="list">${hiddenSets().map((c) => `<li class="imp-row"><div><strong>${esc(c)}</strong><div class="muted small">Deleted from the bundled data</div></div><button class="btn" data-restore="${esc(c)}">Restore</button></li>`).join('')}</ul>` : ''}
       <details class="panel"><summary><strong>Which PDFs work?</strong></summary>
         <p>Sheets laid out like the official card-list PDFs: a card number such as <code>BD/WE49-01</code> in the left column, the card text in the middle, card images beside it, and rarities in the last column.</p>
@@ -84,6 +89,14 @@ class Importer {
     });
     const bkMsg = (t) => { this.el.querySelector('#bk-msg').textContent = t; };
     requestPersistence().then((s) => { const n = this.el.querySelector('#persist-note'); if (n) n.textContent = s === 'persistent' ? 'This device has agreed to keep your data.' : s === 'best-effort' ? 'This device may clear saved data if it runs low on space.' : ''; });
+    const ld = this.el.querySelector('#ld-text'), ldMsg = this.el.querySelector('#ld-msg');
+    ld.value = learnedDigitsText();
+    if (!ld.value) ldMsg.textContent = 'Nothing learned yet. Import a set and type in a power that was left empty (such as one with a 3).';
+    this.el.querySelector('#ld-copy').addEventListener('click', async () => {
+      if (!ld.value) return;
+      try { await navigator.clipboard.writeText(ld.value); ldMsg.textContent = 'Copied.'; }
+      catch { ld.focus(); ld.select(); ldMsg.textContent = 'Press and hold the text, then choose Copy.'; }
+    });
     this.el.querySelector('#bk-save').addEventListener('click', async () => {
       try { bkMsg('Preparing backup…'); bkMsg(await saveFile(`ws-sets-${new Date().toISOString().slice(0, 10)}.json`, new Blob([await setsToJson()], { type: 'application/json' }))); }
       catch (err) { bkMsg(`Could not save the backup: ${err.message}`); }

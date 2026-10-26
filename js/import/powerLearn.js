@@ -25,3 +25,10 @@ export function learnPower(glyphs, digits) {
   if (changed) { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch { return false; } }
   return changed;
 }
+
+/** The digits learned in this browser as one line of text ('' when none), so they can be sent along and built in. */
+export function learnedDigitsText() {
+  const store = load(), out = {};
+  for (const [d, t] of Object.entries(store)) if (Array.isArray(t.v) && t.v.length === 160) out[d] = t.v;
+  return Object.keys(out).length ? JSON.stringify(out) : '';
+}
