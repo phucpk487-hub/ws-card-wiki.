@@ -15,6 +15,10 @@ SAMPLES = [
     ('Comeback', 'cda3314d', 44, 35, 48), ('Pool', '23bd66eb', 38, 32, 44),
     ('Standby', 'fab3f259', 30, 28, 40), ('Shot', 'c5cde9cb', 44, 30, 60),
     # trigger chart (465 x 348)
+    # climaxes of the BanG Dream set (640 x 458); centre and width are given as fractions, then refined by best_descriptor()
+    ('Treasure', 'bd:25', .067 * 640, .08 * 458, .085 * 640), ('Choice', 'bd:11', .067 * 640, .08 * 458, .085 * 640),
+    ('Comeback', 'bd:39', .067 * 640, .08 * 458, .085 * 640), ('Gate', 'bd:59', .067 * 640, .08 * 458, .085 * 640),
+    ('Standby', 'bd:38', .067 * 640, .08 * 458, .085 * 640),
     ('Draw', 'ca7b8f16', 275, 32, 24), ('Bounce', 'ca7b8f16', 28, 310, 24),
 ]
 
@@ -39,7 +43,20 @@ def descriptor(rgb, cx, cy, hexw, shift=(0, 0)):
     hs = [colorsys.rgb_to_hsv(*p)[0] for p in px]
     ang = np.array(hs) * 2 * np.pi
     hue = (np.degrees(np.arctan2(np.sin(ang).mean(), np.cos(ang).mean())) % 360)
-    return {'frac': frac, 'grid': g, 'hue': hue, 'aspect': (x2 - x1) / (y2 - y1)}
+    off = float(np.hypot((x1 + x2) / 2 - mask.shape[1] / 2, (y1 + y2) / 2 - mask.shape[0] / 2))
+    clipped = bool(y1 == 0 or x1 == 0 or y2 == mask.shape[0] or x2 == mask.shape[1])
+    return {'frac': frac, 'grid': g, 'hue': hue, 'aspect': (x2 - x1) / (y2 - y1), 'clipped': clipped, 'off': off}
+
+def best_descriptor(rgb, cx, cy, hexw, span=8):
+    """Descriptor at the shift (within +-span px) where the glyph is best centred in the window and not clipped."""
+    best = None
+    for dx in range(-span, span + 1):
+        for dy in range(-span, span + 1):
+            d = descriptor(rgb, cx, cy, hexw, (dx, dy))
+            if not d or 'grid' not in d: continue
+            score = -d['off'] - (50 if d['clipped'] else 0) - (50 if d['frac'] > .75 else 0)
+            if best is None or score > best[0]: best = (score, d)
+    return best[1] if best else None
 
 def distance(d, t):
     dh = abs(d['hue'] - t['hue']); dh = min(dh, 360 - dh) / 180
@@ -48,7 +65,8 @@ def distance(d, t):
 if __name__ == '__main__':
     out = {}
     for name, f, cx, cy, hw in SAMPLES:
-        d = descriptor(np.asarray(Image.open(A + f + '-image.png').convert('RGB')), cx, cy, hw)
+        path = ('/home/claude/ws-private/bd-we49-images/BD-WE49-' + f[3:] + '.webp') if f.startswith('bd:') else A + f + '-image.png'
+        d = (best_descriptor if f.startswith('bd:') else descriptor)(np.asarray(Image.open(path).convert('RGB')), cx, cy, hw)
         print(name, f, round(d['frac'], 3), round(d.get('hue', -1)), round(d.get('aspect', 0), 2))
         out.setdefault(name, []).append({'grid': [round(float(v), 2) for v in d['grid'].flatten()], 'hue': round(float(d['hue']))})
     names = {'Comeback': 'Come Back'}

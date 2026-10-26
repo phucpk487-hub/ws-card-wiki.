@@ -1,6 +1,6 @@
 // Canvas helpers for imported card images (color detection, power reading, soul counting, compression).
 import { bandRect, readPower } from './power.js';
-import { classifyTrigger } from './trigger.js';
+import { classifyTrigger, classifyClimax } from './trigger.js';
 
 /** Card color from the hue of the nameplate bar. Returns a color name or null. */
 export function detectColor(canvas) {
@@ -71,6 +71,15 @@ export function detectTrigger(canvas) {
     const r = classifyTrigger(canvas.getContext('2d').getImageData(0, 0, w, h).data, w, h);
     return r ? r.type : null;
   } catch { return null; }
+}
+
+/** Trigger icons of a climax card, top to bottom (one or two), e.g. ['Standby', 'Soul']; [] when none is recognised. */
+export function detectClimaxTriggers(canvas) {
+  if (canvas.width <= canvas.height) return [];
+  try {
+    const { width: w, height: h } = canvas;
+    return classifyClimax(canvas.getContext('2d').getImageData(0, 0, w, h).data, w, h);
+  } catch { return []; }
 }
 
 /** Read the printed power with the template matcher in power.js. Returns { value, glyphs, digits, ok }. */

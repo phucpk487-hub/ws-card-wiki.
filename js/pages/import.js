@@ -1,6 +1,6 @@
 import { readPdf } from '../import/pdfReader.js';
 import { parseSheet } from '../import/parse.js';
-import { detectColor, powerCrop, nameCrop, soulCount, hasSoulTrigger, detectTrigger, readPowerCanvas, toBlob } from '../import/images.js';
+import { detectColor, powerCrop, nameCrop, soulCount, hasSoulTrigger, detectTrigger, detectClimaxTriggers, readPowerCanvas, toBlob } from '../import/images.js';
 import { powerTemplates, learnPower, learnedDigitsText } from '../import/powerLearn.js';
 import { savePack, deletePack, listPacks } from '../import/store.js';
 import { resetDb } from '../lib/db.js';
@@ -10,12 +10,12 @@ import { requestPersistence } from '../lib/persist.js';
 import { hiddenSets } from '../lib/hiddenSets.js';
 import { restoreHiddenSet } from '../lib/setAdmin.js';
 import { esc, formatDate, setHref } from '../lib/ui.js';
+import { canonicalTrigger, canonicalTriggers } from '../lib/triggers.js';
 
 const COLORS = ['Yellow', 'Green', 'Red', 'Blue', 'Purple', 'White', 'Colorless'];
 const TRIGGERS = ['Soul', 'Pool', 'Draw', 'Come Back', 'Shot', 'Bounce', 'Gate', 'Standby', 'Treasure', 'Choice', 'Bar', 'Door', 'Pants'];
 const SET_TYPES = ['Booster Pack', 'Trial Deck', 'Extra Booster', 'Premium Booster', 'Promo', 'Other'];
 const slug = (s) => String(s).replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
-const titleCase = (s) => s.trim().replace(/\s+/g, ' ').split(' ').map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 
 export async function render({ navigate }) {
   return {
@@ -154,6 +154,11 @@ class Importer {
             const t = detectTrigger(canvas);
             if (t) { card.triggers.push(t); item.triggerGuess = t; }
           }
+          if (card.type === 'Climax') {
+            const seen = detectClimaxTriggers(canvas);                  // one or two icons printed on the card
+            if (seen.length) { card.triggers = seen; item.triggerGuess = seen.join(', '); }
+          }
+          card.triggers = canonicalTriggers(card.triggers);
           item.mainBlob = await toBlob(canvas);
           item.url = URL.createObjectURL(item.mainBlob); this.urls.push(item.url);
         } else { card.color = null; this.warnings.push(`${card.number}: the PDF has no image for this card.`); }
@@ -211,7 +216,7 @@ class Importer {
         <div id="save-err" class="state error" role="alert" hidden></div>
       </div>
       ${this.warnings.length ? `<details class="panel"><summary>${this.warnings.length} note${this.warnings.length === 1 ? '' : 's'} from reading the PDF</summary><ul>${this.warnings.map((w) => `<li>${esc(w)}</li>`).join('')}</ul></details>` : ''}
-      <p class="muted small">Soul is counted from the icons on the card; please glance over it. Trigger icons (Soul, Treasure, Pool, Gate, Come Back, Draw, Shot, Standby, Choice, Bounce) are recognised from the top-right icon; check them, especially Bounce and Standby, and add any other kind by hand. Power is read from the number on the card; compare it with the zoomed crop, and type it in when it is empty. A digit the reader has never seen (such as 3) is learned after you type it once. Press Enter in a power box to jump to the next card.</p>
+      <p class="muted small">Soul is counted from the icons on the card; please glance over it. Trigger icons (Soul, Treasure, Pool, Gate, Come Back, Draw, Shot, Standby, Choice, Bounce) are recognised from the icon on the card, and climaxes with two icons get both; check them, especially Bounce and Standby, and add any other kind by hand. Power is read from the number on the card; compare it with the zoomed crop, and type it in when it is empty. A digit the reader has never seen (such as 3) is learned after you type it once. Press Enter in a power box to jump to the next card.</p>
       <div class="table-wrap"><table class="data imp-table"><thead><tr><th></th><th>Card</th><th>Power</th><th>Soul</th><th>Color</th><th>Trigger</th><th>Name (JP)</th></tr></thead><tbody id="rows">${rows}</tbody></table></div>
       <datalist id="trig-list">${TRIGGERS.map((t) => `<option value="${t}">`).join('')}</datalist>`;
     this.updateMissing();
@@ -245,7 +250,7 @@ class Importer {
     if (k === 'power' || k === 'soul') c[k] = v === '' ? null : Math.max(0, Math.round(Number(v)));
     if (k === 'power' && c.power && c.power % 500 === 0) learnPower(this.items[Number(e.target.closest('tr').dataset.i)].glyphs || [], String(c.power));
     else if (k === 'color') c.color = v || null;
-    else if (k === 'triggers') c.triggers = [...new Set(v.split(',').map((t) => t.trim()).filter(Boolean).map(titleCase))];
+    else if (k === 'triggers') c.triggers = canonicalTriggers(v.split(','));
     else if (k === 'nameJp') c.nameJp = v || null;
     this.updateMissing();
   }

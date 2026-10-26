@@ -69,8 +69,8 @@ function distance(d, t) {
 }
 
 /** Classify the trigger icon of the hexagon at (cx, cy) / width hex. Returns { type, distance } or null. */
-export function classifyAt(rgba, w, h, cx, cy, hex) {
-  const step = Math.max(1, Math.round(hex / 24)), shifts = [-2, -1, 0, 1, 2].map((k) => k * step);
+export function classifyAt(rgba, w, h, cx, cy, hex, span = 2) {
+  const step = Math.max(1, Math.round(hex / 24)), shifts = Array.from({ length: 2 * span + 1 }, (_, k) => (k - span) * step);
   let best = null, ring = 0;
   for (const dx of shifts) for (const dy of shifts) {
     ring = Math.max(ring, ringDark(rgba, w, h, cx + dx, cy + dy, hex));
@@ -80,7 +80,7 @@ export function classifyAt(rgba, w, h, cx, cy, hex) {
       const dist = distance(d, t);
       if (dist > (LIMIT[type] ?? LIMIT.default)) continue;
       if (HUE_GATE[type] && hueDiff(d.hue, t.hue) > HUE_GATE[type]) continue;
-      if (!best || dist < best.distance) best = { type, distance: dist };
+      if (!best || dist < best.distance) best = { type, distance: dist, dx, dy };
     }
   }
   return best && ring >= .08 ? best : null;
@@ -90,4 +90,46 @@ export function classifyAt(rgba, w, h, cx, cy, hex) {
 export function classifyTrigger(rgba, w, h) {
   if (w > h) return null;
   return classifyAt(rgba, w, h, SLOT.x * w, SLOT.y * h, SLOT.hex * w);
+}
+
+// ───────── Climax cards (landscape): one or two trigger icons stacked in the top-left corner ─────────
+export const CX_SLOT = { x: .067, y: .08, hex: .085, pitch: .87 };   // first hexagon centre / width as fractions of the card width (y: of the height); pitch = spacing in hexagon widths
+
+/** { dx, dy } (the shift that fits best) when the hexagon at (cx, cy) holds the Soul icon, a black fleur-de-lis on a white hexagon; else null. */
+export function soulAt(rgba, w, h, cx, cy, hex, span = 2) {
+  const step = Math.max(1, Math.round(hex / 24)), shifts = Array.from({ length: 2 * span + 1 }, (_, k) => (k - span) * step);
+  let best = null;
+  for (const dx of shifts) for (const dy of shifts) {
+    const x = cx + dx, y = cy + dy, rad = .42 * hex;
+    let n = 0, dark = 0, white = 0, colour = 0;
+    for (let yy = Math.max(0, Math.floor(y - rad)); yy < Math.min(h, Math.ceil(y + rad)); yy++) for (let xx = Math.max(0, Math.floor(x - rad)); xx < Math.min(w, Math.ceil(x + rad)); xx++) {
+      if (Math.hypot(xx - x, yy - y) > rad) continue;
+      const i = (yy * w + xx) * 4, r = rgba[i], g = rgba[i + 1], b = rgba[i + 2], mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+      n++; if (mx < 64) dark++; else if (mx > 204 && (mx - mn) / mx < .2) white++;
+      if (mx > 77 && (mx - mn) / mx > .28) colour++;
+    }
+    if (n && colour / n < .08 && dark / n >= .1 && dark / n <= .55 && white / n >= .25 && ringDark(rgba, w, h, x, y, hex) >= .08) { const score = Math.abs(dx) + Math.abs(dy); if (!best || score < best.score) best = { dx, dy, score }; }
+  }
+  return best;
+}
+
+/** Trigger icons of a climax card, top to bottom, e.g. ['Standby', 'Soul']. Stops at the first empty slot. */
+export function classifyClimaxAt(rgba, w, h, cx, cy, hex, pitch = CX_SLOT.pitch) {
+  const out = [];
+  let x = cx, y = cy;
+  for (let i = 0; i < 2; i++) {
+    const span = i === 0 ? 4 : 2;                       // the second icon sits right below the first, so it needs less searching
+    const c = classifyAt(rgba, w, h, x, y, hex, span);
+    const sl = c ? null : soulAt(rgba, w, h, x, y, hex, span);
+    const hit = c || sl;
+    if (!hit) break;
+    out.push(c ? c.type : 'Soul');
+    x += hit.dx; y += hit.dy + pitch * hex;
+  }
+  return out;
+}
+
+export function classifyClimax(rgba, w, h) {
+  if (w <= h) return [];
+  return classifyClimaxAt(rgba, w, h, CX_SLOT.x * w, CX_SLOT.y * h, CX_SLOT.hex * w);
 }
