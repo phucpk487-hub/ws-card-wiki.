@@ -102,3 +102,11 @@ test('filterText', () => {
   assert.equal(filterText(items, 'encore', (x) => x.t).length, 1);
   assert.equal(filterText(items, '', (x) => x.t).length, 2);
 });
+
+import { displayName } from '../js/lib/ui.js';
+test('displayName shows level/cost for Characters and Events, plain name for Climax', () => {
+  assert.equal(displayName({ type: 'Character', name: 'Spica', level: 0, cost: 0, soul: 2 }), 'Spica 0/0');
+  assert.equal(displayName({ type: 'Event', name: 'Drink', level: 3, cost: 1 }), 'Drink 3/1');
+  assert.equal(displayName({ type: 'Climax', name: 'Door CX', level: null, cost: null }), 'Door CX');
+  assert.equal(displayName({ type: 'Character', name: 'X', level: null, cost: 1 }), 'X');
+});

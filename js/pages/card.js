@@ -64,7 +64,7 @@ export async function render({ db, path }) {
   </div>`;
 
   return {
-    title: card.name,
+    title: displayName(card),
     html,
     mount(root, { db }) {
       const byNumber = new Map(db.cards.map((c) => [c.number, c]));

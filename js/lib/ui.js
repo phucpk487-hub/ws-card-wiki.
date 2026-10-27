@@ -10,8 +10,8 @@ const COLOR_DARK = {
   Purple: '#583388', White: '#8f93a3', Colorless: '#555865',
 };
 
-/** How a card's name is shown in lists and headings: "Spica 0/0" (soul/cost) for Characters; other types show the plain name. */
-export const displayName = (card) => (card.type === 'Character' ? `${card.name} ${card.soul ?? '?'}/${card.cost ?? '?'}` : card.name);
+/** How a card's name is shown in lists and headings: "Spica 0/0" (level/cost) for Characters and Events; Climax cards show the plain name. */
+export const displayName = (card) => (card.type !== 'Climax' && typeof card.level === 'number' && typeof card.cost === 'number' ? `${card.name} ${card.level}/${card.cost}` : card.name);
 
 export const cardHref = (n) => `#/card/${encodeURIComponent(n)}`;
 export const setHref = (c) => `#/set/${encodeURIComponent(c)}`;
