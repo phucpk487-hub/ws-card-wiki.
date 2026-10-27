@@ -203,6 +203,8 @@ function range(cards, key) {
   return v.length ? { min: Math.min(...v), max: Math.max(...v) } : null;
 }
 
+const withDefaults = (m, keys) => { for (const k of keys) if (!m.has(k)) m.set(k, 0); return m; };
+
 /** Distinct values with counts, for building filter controls. */
 export function buildFacets(cards) {
   const count = (get) => {
@@ -214,7 +216,7 @@ export function buildFacets(cards) {
     .map(([value, n]) => ({ value, count: n }));
   return {
     colors: sortKeys(count((c) => c.color)),
-    types: sortKeys(count((c) => c.type), (a, b) => ['Character', 'Event', 'Climax'].indexOf(a) - ['Character', 'Event', 'Climax'].indexOf(b)),
+    types: sortKeys(withDefaults(count((c) => c.type), ['Character', 'Event', 'Climax']), (a, b) => ['Character', 'Event', 'Climax'].indexOf(a) - ['Character', 'Event', 'Climax'].indexOf(b)),
     levels: sortKeys(count((c) => c.level), (a, b) => a - b),
     rarities: sortKeys(count((c) => c.rarity), (a, b) => RARITY_ORDER.indexOf(a) - RARITY_ORDER.indexOf(b)),
     sets: sortKeys(count((c) => c.set)),

@@ -6,6 +6,8 @@ const NUM_RE = /^([A-Z0-9]+\/[A-Z0-9]+-\d+[A-Za-z]*)$/;
 const CHAR_HDR = /^\((\w+)\)\s+(\d+)\/(\d+)\s+(.+?)\s+\((.*)\)\s*$/;
 // Events print no traits, so the trailing (…) is optional; the tag in front tells the type.
 const EVENT_HDR = /^\((EV|EVENT)\)\s+(\d+)\/(\d+)\s+(.+?)(?:\s+\(([^()]*)\))?\s*$/i;
+// Any other "(TAG) level/cost name" header (no trait list): Events by their tag, otherwise a trait-less Character.
+const GENERIC_HDR = /^\((\w+)\)\s+(\d+)\/(\d+)\s+(.+?)\s*$/;
 const CX_HDR = /^\((\w+)\)\s+(.+?)\s*CX\s*$/;
 const ABILITY = /^(AUTO|CONT|ACT)\b\s*-?\s*([\s\S]*)$/;
 
@@ -64,7 +66,11 @@ export function parseBlock(number, headerLines, paras, rarities, warnings) {
   } else {
     const cx = CX_HDR.exec(header);
     if (cx) { const kind = cx[2].trim(); Object.assign(card, { type: 'Climax', printTag: cx[1], name: `${kind} CX`, triggers: [kind] }); }
-    else { warnings.push(`${number}: unrecognised header "${header}"`); card.name = header || number; card.type = 'Character'; }
+    else if ((m = GENERIC_HDR.exec(header))) {
+      const ev = /^(EV|EVENT)$/i.test(m[1]);
+      Object.assign(card, { type: ev ? 'Event' : 'Character', printTag: m[1].toUpperCase(), level: +m[2], cost: +m[3], name: m[4] });
+      if (!ev) warnings.push(`${number}: no trait list in header "${header}"; check the type on the review screen`);
+    } else { warnings.push(`${number}: unrecognised header "${header}"; set its type on the review screen`); card.name = header || number; card.type = 'Character'; }
   }
   for (const p of rest) {
     if (/^note:/i.test(p)) {

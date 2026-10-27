@@ -156,7 +156,9 @@ class Importer {
           }
           if (card.type === 'Climax') {
             const seen = detectClimaxTriggers(canvas);                  // one or two icons printed on the card
-            if (seen.length) { card.triggers = seen; item.triggerGuess = seen.join(', '); }
+            const named = canonicalTriggers(card.triggers);              // the PDF text names the first icon; trust that over the picture
+            const list = named.length ? [named[0], ...seen.slice(1)] : seen;
+            if (list.length) { card.triggers = [...new Set(list)]; item.triggerGuess = card.triggers.join(', '); }
           }
           card.triggers = canonicalTriggers(card.triggers);
           card.counter = card.type !== 'Climax' && detectCounter(canvas);
@@ -187,18 +189,24 @@ class Importer {
 
   review() {
     const { form } = this;
-    const rows = this.items.map((it, i) => {
+    const rows = this.items.map((it, i) => this.rowHtml(it, i)).join('');
+    this.reviewShell(form, rows);
+  }
+
+  rowHtml(it, i) {
       const c = it.card, ch = c.type === 'Character';
       return `<tr data-i="${i}">
         <td>${it.url ? `<img class="thumb" src="${it.url}" alt="${esc(c.name)}">` : '<div class="thumb none" aria-label="No image">–</div>'}</td>
-        <td><strong>${esc(c.number)}</strong><div>${esc(c.name)}</div><div class="muted small">${c.type === 'Climax' ? 'Climax' : `${c.type === 'Event' ? 'Event · ' : ''}Lv ${c.level} · cost ${c.cost}${c.traits.length ? ` · ${esc(c.traits.join(' / '))}` : ''}`}</div></td>
+        <td><strong>${esc(c.number)}</strong><div>${esc(c.name)}</div><select data-k="type" aria-label="Type of ${esc(c.number)}">${['Character', 'Event', 'Climax'].map((t) => `<option ${t === c.type ? 'selected' : ''}>${t}</option>`).join('')}</select><div class="muted small">${c.type === 'Climax' ? 'Climax' : `${c.type === 'Event' ? 'Event · ' : ''}Lv ${c.level} · cost ${c.cost}${c.traits.length ? ` · ${esc(c.traits.join(' / '))}` : ''}`}</div></td>
         <td>${ch ? `${it.crop ? `<img class="crop" src="${it.crop}" alt="Power as printed on ${esc(c.number)}">` : ''}<input class="num-in" data-k="power" type="number" min="0" step="500" inputmode="numeric" aria-label="Power for ${esc(c.number)}" value="${c.power ?? ''}">` : '<span class="muted">–</span>'}</td>
         <td>${ch ? `<input class="num-in sm" data-k="soul" type="number" min="0" max="5" step="1" inputmode="numeric" aria-label="Soul for ${esc(c.number)}" value="${c.soul ?? ''}">` : '<span class="muted">–</span>'}</td>
         <td><select data-k="color" aria-label="Color for ${esc(c.number)}"><option value="">?</option>${COLORS.map((x) => `<option ${x === c.color ? 'selected' : ''}>${x}</option>`).join('')}</select></td>
         <td><input data-k="triggers" list="trig-list" aria-label="Triggers for ${esc(c.number)}" placeholder="e.g. Soul, Draw" value="${esc(c.triggers.join(', '))}"></td>
         <td>${c.type === 'Climax' ? '<span class="muted">–</span>' : `<input data-k="counter" type="checkbox" aria-label="Counter icon on ${esc(c.number)}" ${c.counter ? 'checked' : ''}>`}</td>
         <td class="jp-cell">${it.nameCrop ? `<img class="crop wide" src="${it.nameCrop}" alt="Title bar of ${esc(c.number)}, showing the Japanese name">` : ''}<input data-k="nameJp" lang="ja" aria-label="Japanese name for ${esc(c.number)}" placeholder="Type or paste the name shown above" value="${esc(c.nameJp || '')}"></td></tr>`;
-    }).join('');
+  }
+
+  reviewShell(form, rows) {
     this.el.innerHTML = `
       <h1>Review ${this.items.length} cards</h1>
       <div class="panel imp-summary">
@@ -250,6 +258,14 @@ class Importer {
     const k = e.target.dataset.k; if (!k) return;
     const c = this.items[Number(e.target.closest('tr').dataset.i)].card, v = e.target.value.trim();
     if (k === 'counter') { c.counter = e.target.checked; return; }
+    if (k === 'type') {                                          // Events and Climaxes have no power or soul; Climaxes have no level, cost or counter
+      const i = Number(e.target.closest('tr').dataset.i), tr = e.target.closest('tr');
+      c.type = v;
+      if (v !== 'Character') { c.power = null; c.soul = null; }
+      if (v === 'Climax') { c.level = null; c.cost = null; c.counter = false; }
+      tr.outerHTML = this.rowHtml(this.items[i], i);
+      this.updateMissing(); return;
+    }
     if (k === 'power' || k === 'soul') c[k] = v === '' ? null : Math.max(0, Math.round(Number(v)));
     if (k === 'power' && c.power && c.power % 500 === 0) learnPower(this.items[Number(e.target.closest('tr').dataset.i)].glyphs || [], String(c.power));
     else if (k === 'color') c.color = v || null;
