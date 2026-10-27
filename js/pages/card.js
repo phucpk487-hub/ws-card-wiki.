@@ -30,6 +30,7 @@ export async function render({ db, path }) {
     row('Color', colorBadge(card.color)),
     ...(card.type !== 'Climax' ? [row('Level', card.level ?? dash), row('Cost', card.cost ?? dash)] : []),
     ...(isChar ? [row('Power', card.power ?? dash), row('Soul', card.soul ?? dash)] : []),
+    ...(card.type !== 'Climax' ? [row('Counter', card.counter ? '<span class="badge">Counter</span>' : dash)] : []),
     row('Trigger', card.triggers.length ? card.triggers.map(triggerBadge).join(' ') : dash),
     row('Traits', card.traits.length ? card.traits.map((t) => `<a class="chip small" href="${searchHref({ traits: t })}">${esc(t)}</a>`).join(' ') : dash),
     row('Rarity', esc((card.rarities && card.rarities.length ? card.rarities : [card.rarity]).join(', ') || dash)),

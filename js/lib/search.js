@@ -105,7 +105,7 @@ function matchesNumber(v, clause) {
 }
 
 const HAS = {
-  image: (c) => !!c.image, trigger: (c) => (c.triggers || []).length > 0, triggers: (c) => (c.triggers || []).length > 0,
+  image: (c) => !!c.image, counter: (c) => !!c.counter, trigger: (c) => (c.triggers || []).length > 0, triggers: (c) => (c.triggers || []).length > 0,
   soul: (c) => typeof c.soul === 'number', power: (c) => typeof c.power === 'number', effect: (c) => (c.effect || []).length > 0,
   jp: (c) => !!c.nameJp, flavor: (c) => !!c.flavor, trait: (c) => (c.traits || []).length > 0, traits: (c) => (c.traits || []).length > 0,
 };

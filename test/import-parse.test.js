@@ -33,3 +33,22 @@ test('browser parser matches the Python converter on the BD/WE49 sheet', { skip:
 test('empty or non-sheet input yields no cards', () => {
   assert.equal(parseSheet([{ index: 0, width: 600, height: 800, words: [{ str: 'Hello', x0: 10, x1: 40, base: 20, size: 10 }], images: [] }]).cards.length, 0);
 });
+
+import { parseBlock } from '../js/import/parse.js';
+import { searchCards } from '../js/lib/search.js';
+
+test('Event headers are read (with or without a trailing trait list)', () => {
+  for (const header of ['(EV) 3/0 Non-Stop Drinking', '(EV) 3/0 Non-Stop Drinking ()', '(EV) 3/0 Non-Stop Drinking (Music)']) {
+    const c = parseBlock('BTR/W107-E063', [header], ['[ACT] Choose 1 of your characters.'], ['C'], []);
+    assert.equal(c.type, 'Event', header);
+    assert.equal(c.level, 3); assert.equal(c.cost, 0); assert.equal(c.name, 'Non-Stop Drinking'); assert.equal(c.printTag, 'EV');
+  }
+  const ch = parseBlock('X/Y-01', ['(CH) 1/0 Someone (Music)'], [], ['C'], []);
+  assert.equal(ch.type, 'Character');
+});
+
+test('has:counter finds cards with the counter icon', () => {
+  const cards = [{ number: 'A', name: 'a', type: 'Event', counter: true }, { number: 'B', name: 'b', type: 'Character', counter: false }, { number: 'C', name: 'c', type: 'Character' }];
+  assert.deepEqual(searchCards(cards, { q: 'has:counter' }).items.map((c) => c.number), ['A']);
+  assert.deepEqual(searchCards(cards, { q: 'type:event' }).items.map((c) => c.number), ['A']);
+});

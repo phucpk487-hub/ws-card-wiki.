@@ -4,6 +4,8 @@
 export const RARITY_TOKENS = ['SSP', 'BDR', 'SP', 'SR', 'RR', 'R', 'U', 'C'];
 const NUM_RE = /^([A-Z0-9]+\/[A-Z0-9]+-\d+[A-Za-z]*)$/;
 const CHAR_HDR = /^\((\w+)\)\s+(\d+)\/(\d+)\s+(.+?)\s+\((.*)\)\s*$/;
+// Events print no traits, so the trailing (…) is optional; the tag in front tells the type.
+const EVENT_HDR = /^\((EV|EVENT)\)\s+(\d+)\/(\d+)\s+(.+?)(?:\s+\(([^()]*)\))?\s*$/i;
 const CX_HDR = /^\((\w+)\)\s+(.+?)\s*CX\s*$/;
 const ABILITY = /^(AUTO|CONT|ACT)\b\s*-?\s*([\s\S]*)$/;
 
@@ -47,12 +49,17 @@ export function parseBlock(number, headerLines, paras, rarities, warnings) {
   const card = { number, rarities, effect: [], notes: [], triggers: [], traits: [], level: null, cost: null, type: null, name: null, printTag: null };
   let header = headerLines[0] || '';
   let rest = paras;
-  let m = CHAR_HDR.exec(header);
-  if (!m && !CX_HDR.test(header) && paras.length) { // header wrapped onto a second line
+  const isEv = (h) => EVENT_HDR.test(h) && /^\((EV|EVENT)\)/i.test(h);
+  let m = CHAR_HDR.exec(header), ev = isEv(header) ? EVENT_HDR.exec(header) : null;
+  if (!m && !ev && !CX_HDR.test(header) && paras.length) { // header wrapped onto a second line
     const joined = `${header} ${paras[0]}`;
-    if (CHAR_HDR.test(joined)) { header = joined; rest = paras.slice(1); m = CHAR_HDR.exec(header); }
+    if (CHAR_HDR.test(joined) || isEv(joined)) { header = joined; rest = paras.slice(1); m = CHAR_HDR.exec(header); ev = isEv(header) ? EVENT_HDR.exec(header) : null; }
   }
-  if (m) {
+  if (ev || (m && /^(EV|EVENT)$/i.test(m[1]))) {
+    const e = ev || EVENT_HDR.exec(header) || m;
+    const [tag, level, cost, name, traits] = ev ? [e[1], e[2], e[3], e[4], e[5]] : [m[1], m[2], m[3], m[4], m[5]];
+    Object.assign(card, { type: 'Event', printTag: tag.toUpperCase(), level: +level, cost: +cost, name, traits: (traits || '').split('/').map((t) => t.trim()).filter(Boolean) });
+  } else if (m) {
     Object.assign(card, { type: 'Character', printTag: m[1], level: +m[2], cost: +m[3], name: m[4], traits: m[5].split('/').map((t) => t.trim()).filter(Boolean) });
   } else {
     const cx = CX_HDR.exec(header);

@@ -31,3 +31,13 @@ test('PDF nicknames map onto one name per icon', () => {
   assert.equal(canonicalTrigger('soul'), 'Soul');
   assert.equal(canonicalTrigger('come back'), 'Come Back');
 });
+
+import { hasCounterAt } from '../js/import/counter.js';
+
+test('counter icon: found on the counter card at several sizes, absent on other cards (including the yellow ALARM diamond)', () => {
+  const cases = JSON.parse(readFileSync(new URL('./fixtures/counter-crops.json', import.meta.url)));
+  for (const c of cases) {
+    const px = new Uint8ClampedArray(Buffer.from(c.rgba, 'base64'));
+    assert.equal(hasCounterAt(px, c.w, c.h, c.cx, c.cy, c.size * 5 / 9), c.expect, c.name);
+  }
+});
