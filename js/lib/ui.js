@@ -10,6 +10,9 @@ const COLOR_DARK = {
   Purple: '#583388', White: '#8f93a3', Colorless: '#555865',
 };
 
+/** How a card's name is shown in lists and headings: "Spica 0/0" (soul/cost) for Characters; other types show the plain name. */
+export const displayName = (card) => (card.type === 'Character' ? `${card.name} ${card.soul ?? '?'}/${card.cost ?? '?'}` : card.name);
+
 export const cardHref = (n) => `#/card/${encodeURIComponent(n)}`;
 export const setHref = (c) => `#/set/${encodeURIComponent(c)}`;
 export const searchHref = (params) => `#/cards?${new URLSearchParams(params).toString()}`;
@@ -61,10 +64,10 @@ export function cardArt(card, { lazy = true } = {}) {
 
 export function cardTile(card) {
   const lvl = card.level !== null && card.level !== undefined ? `Lv ${card.level}` : card.type;
-  return `<a class="tile" href="${cardHref(card.number)}" aria-label="${esc(card.name)}, ${esc(card.number)}">
+  return `<a class="tile" href="${cardHref(card.number)}" aria-label="${esc(displayName(card))}, ${esc(card.number)}">
     ${cardArt(card)}
     <div class="tile-body">
-      <div class="tile-name">${esc(card.name)}</div>
+      <div class="tile-name">${esc(displayName(card))}</div>
       <div class="tile-meta">${colorDot(card.color)}<span>${esc(card.number)}</span><span class="rar">${esc(card.rarity)}</span></div>
       <div class="tile-meta muted">${esc(lvl)}${card.type === 'Character' ? ` · ${card.power} pw` : ''}</div>
     </div></a>`;
@@ -73,7 +76,7 @@ export function cardTile(card) {
 export function cardRow(card) {
   return `<tr>
     <td><a href="${cardHref(card.number)}">${esc(card.number)}</a></td>
-    <td><a href="${cardHref(card.number)}"><strong>${esc(card.name)}</strong></a></td>
+    <td><a href="${cardHref(card.number)}"><strong>${esc(displayName(card))}</strong></a></td>
     <td>${colorBadge(card.color)}</td><td>${esc(card.type)}</td>
     <td class="num">${card.level ?? '–'}</td><td class="num">${card.cost ?? '–'}</td><td class="num">${card.power ?? '–'}</td>
     <td class="num">${card.soul ?? '–'}</td><td>${esc(card.rarity)}</td></tr>`;

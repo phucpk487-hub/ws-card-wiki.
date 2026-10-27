@@ -3,7 +3,7 @@ import { listDecks, getDeck, saveDeck, deleteDeck, persistent } from '../lib/dec
 import { DECK_SIZE, MAX_COPIES, MAX_CLIMAX, emptyDeck, countOf, totalCards, canAdd, withCard, groupDeck, analyze, parseDeckText, exportDeckText } from '../lib/deck.js';
 import { decksToJson, decksFromJson, restoreDecks } from '../lib/backup.js';
 import { saveFile } from '../lib/files.js';
-import { esc, cardArt, cardHref, colorDot, colorBadge, chip, emptyState, triggerBadge, COLOR_HEX } from '../lib/ui.js';
+import { esc, displayName, cardArt, cardHref, colorDot, colorBadge, chip, emptyState, triggerBadge, COLOR_HEX } from '../lib/ui.js';
 
 export async function render(ctx) {
   const byNumber = new Map(ctx.db.cards.map((c) => [c.number, c]));
@@ -144,7 +144,7 @@ function editor({ db, path }, byNumber) {
           const n = countOf(deck, c.number), ok = canAdd(deck, c, byNumber);
           const meta = [c.number, c.type === 'Climax' ? 'Climax' : `Lv ${c.level ?? '–'} · cost ${c.cost ?? '–'}${typeof c.power === 'number' ? ` · ${c.power}` : ''}`].join(' · ');
           return `<div class="rrow"><a class="mini" href="${cardHref(c.number)}" aria-label="View ${esc(c.name)}">${cardArt(c)}</a>
-            <div class="rinfo"><a href="${cardHref(c.number)}"><strong>${esc(c.name)}</strong></a><div class="muted small">${colorDot(c.color)} ${esc(meta)}</div></div>
+            <div class="rinfo"><a href="${cardHref(c.number)}"><strong>${esc(displayName(c))}</strong></a><div class="muted small">${colorDot(c.color)} ${esc(meta)}</div></div>
             <div class="rctl">${n ? `<span class="in-deck" title="Copies in deck">×${n}</span>` : ''}<button class="btn add" data-add="${esc(c.number)}" aria-label="Add ${esc(c.name)} to deck" ${ok.ok ? '' : `disabled title="${esc(ok.reason)}"`}>+</button></div></div>`;
         }).join('');
         $('#dresults').innerHTML = `<div class="result-head" role="status">${r.total} card${r.total === 1 ? '' : 's'}</div>${rows || emptyState('No cards match', 'Try a different search or clear the filters.')}
@@ -161,7 +161,7 @@ function editor({ db, path }, byNumber) {
         const groups = groupDeck(deck, byNumber);
         $('#dlist').innerHTML = groups.length ? groups.map((g) => `<div class="dgroup"><h3>${esc(g.label)} <span class="count">${g.total}</span></h3>
           ${g.entries.map(({ number, count, card }) => `<div class="drow"><a class="mini sm" href="${cardHref(number)}">${card ? cardArt(card) : '<div class="art"></div>'}</a>
-            <div class="rinfo"><a href="${cardHref(number)}"><strong>${esc(card ? card.name : number)}</strong></a><div class="muted small">${esc(number)}${card && card.type === 'Character' ? ` · cost ${card.cost ?? '–'}` : ''}${card ? '' : ' · not in database'}</div></div>
+            <div class="rinfo"><a href="${cardHref(number)}"><strong>${esc(card ? displayName(card) : number)}</strong></a><div class="muted small">${esc(number)}${card && card.type === 'Character' ? ` · cost ${card.cost ?? '–'}` : ''}${card ? '' : ' · not in database'}</div></div>
             <div class="stepper"><button class="btn sq" data-dec="${esc(number)}" aria-label="Remove one ${esc(card ? card.name : number)}">−</button><span class="n" aria-label="${count} copies">${count}</span><button class="btn sq" data-add="${esc(number)}" aria-label="Add one ${esc(card ? card.name : number)}" ${!card || canAdd(deck, card, byNumber).ok ? '' : 'disabled'}>+</button></div></div>`).join('')}</div>`).join('')
           : emptyState('This deck is empty', 'Search on the left and press + to add cards.');
       }

@@ -2,7 +2,7 @@ import { findCard, cardsInSet, findSet } from '../lib/db.js';
 import { relatedCards } from '../lib/search.js';
 import { listDecks, saveDeck } from '../lib/deckStore.js';
 import { canAdd, withCard, countOf, emptyDeck } from '../lib/deck.js';
-import { esc, cardArt, cardTile, colorBadge, formatEffect, triggerBadge, searchHref, setHref, cardHref, emptyState } from '../lib/ui.js';
+import { esc, displayName, cardArt, cardTile, colorBadge, formatEffect, triggerBadge, searchHref, setHref, cardHref, emptyState } from '../lib/ui.js';
 
 export async function render({ db, path }) {
   const number = path[1] || '';
@@ -50,7 +50,7 @@ export async function render({ db, path }) {
         </div>
       </div>
       <div class="card-info">
-        <h1>${esc(card.name)}</h1>
+        <h1>${esc(displayName(card))}</h1>
         <div class="add-deck" id="add-deck"></div>
         <section aria-labelledby="eff"><h2 id="eff">Card text</h2>
           ${card.effect.length ? `<ul class="effects">${card.effect.map((e) => `<li>${formatEffect(e)}</li>`).join('')}</ul>` : '<p class="muted">No card text.</p>'}
