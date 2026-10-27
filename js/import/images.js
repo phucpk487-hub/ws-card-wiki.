@@ -100,16 +100,6 @@ export function readPowerCanvas(canvas, templates) {
   return readPower(gray, r.w, r.h, canvas.width, templates);
 }
 
-/** Small data-URL of the title bar (where the Japanese name is printed) so it can be read and typed in on the review screen. */
-export function nameCrop(canvas) {
-  const w = canvas.width, h = canvas.height, portrait = h > w;
-  const sx = Math.round((portrait ? .255 : .1) * w), sy = Math.round((portrait ? .898 : .89) * h);
-  const sw = Math.round((portrait ? .585 : .8) * w), sh = Math.round((portrait ? .047 : .08) * h);
-  const out = document.createElement('canvas'); out.width = sw * 2; out.height = sh * 2;
-  out.getContext('2d').drawImage(canvas, sx, sy, sw, sh, 0, 0, out.width, out.height);
-  return out.toDataURL('image/png');
-}
-
 /** Small data-URL of the power box so the user can read the number while typing it in. */
 export function powerCrop(canvas) {
   if (canvas.width > canvas.height) return null;

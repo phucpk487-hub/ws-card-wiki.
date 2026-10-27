@@ -1,6 +1,6 @@
 import { readPdf } from '../import/pdfReader.js';
 import { parseSheet } from '../import/parse.js';
-import { detectColor, powerCrop, nameCrop, soulCount, hasSoulTrigger, detectTrigger, detectClimaxTriggers, detectCounter, readPowerCanvas, toBlob } from '../import/images.js';
+import { detectColor, powerCrop, soulCount, hasSoulTrigger, detectTrigger, detectClimaxTriggers, detectCounter, readPowerCanvas, toBlob } from '../import/images.js';
 import { powerTemplates, learnPower, learnedDigitsText } from '../import/powerLearn.js';
 import { savePack, deletePack, listPacks } from '../import/store.js';
 import { resetDb } from '../lib/db.js';
@@ -146,7 +146,6 @@ class Importer {
         if (ref.main !== null) {
           const canvas = await pg.images[ref.main].pixels();
           card.color = detectColor(canvas);
-          item.nameCrop = nameCrop(canvas);
           if (card.type === 'Character') { item.crop = powerCrop(canvas); item.soul = soulCount(canvas); const pw = readPowerCanvas(canvas, templates); item.power = pw.value; item.glyphs = pw.glyphs; }
           // An Event prints no power or soul. The sheet header of some Events looks like a Character's, so also treat a card as an Event
           // when it is called "Event", or has no traits and no soul icon (every Character has at least one). The review screen lets you undo this.
@@ -172,7 +171,7 @@ class Importer {
           item.url = URL.createObjectURL(item.mainBlob); this.urls.push(item.url);
         } else { card.color = null; this.warnings.push(`${card.number}: the PDF has no image for this card.`); }
         for (const a of ref.alts) item.altBlobs.push(await toBlob(await pg.images[a].pixels()));
-        Object.assign(card, { power: card.type === 'Character' ? (item.power ?? null) : null, soul: card.type === 'Character' ? (item.soul ?? null) : null, nameJp: null, counter: !!card.counter });
+        Object.assign(card, { power: card.type === 'Character' ? (item.power ?? null) : null, soul: card.type === 'Character' ? (item.soul ?? null) : null, counter: !!card.counter });
         items.push(item);
         if (i % 4 === 3) await new Promise((r) => setTimeout(r)); // let the progress bar paint
       }
@@ -208,8 +207,7 @@ class Importer {
         <td>${ch ? `<input class="num-in sm" data-k="soul" type="number" min="0" max="5" step="1" inputmode="numeric" aria-label="Soul for ${esc(c.number)}" value="${c.soul ?? ''}">` : '<span class="muted">–</span>'}</td>
         <td><select data-k="color" aria-label="Color for ${esc(c.number)}"><option value="">?</option>${COLORS.map((x) => `<option ${x === c.color ? 'selected' : ''}>${x}</option>`).join('')}</select></td>
         <td><input data-k="triggers" list="trig-list" aria-label="Triggers for ${esc(c.number)}" placeholder="e.g. Soul, Draw" value="${esc(c.triggers.join(', '))}"></td>
-        <td>${c.type === 'Climax' ? '<span class="muted">–</span>' : `<input data-k="counter" type="checkbox" aria-label="Counter icon on ${esc(c.number)}" ${c.counter ? 'checked' : ''}>`}</td>
-        <td class="jp-cell">${it.nameCrop ? `<img class="crop wide" src="${it.nameCrop}" alt="Title bar of ${esc(c.number)}, showing the Japanese name">` : ''}<input data-k="nameJp" lang="ja" aria-label="Japanese name for ${esc(c.number)}" placeholder="Type or paste the name shown above" value="${esc(c.nameJp || '')}"></td></tr>`;
+        <td>${c.type === 'Climax' ? '<span class="muted">–</span>' : `<input data-k="counter" type="checkbox" aria-label="Counter icon on ${esc(c.number)}" ${c.counter ? 'checked' : ''}>`}</td></tr>`;
   }
 
   reviewShell(form, rows) {
@@ -233,7 +231,7 @@ class Importer {
       </div>
       ${this.warnings.length ? `<details class="panel"><summary>${this.warnings.length} note${this.warnings.length === 1 ? '' : 's'} from reading the PDF</summary><ul>${this.warnings.map((w) => `<li>${esc(w)}</li>`).join('')}</ul></details>` : ''}
       <p class="muted small">Soul is counted from the icons on the card; please glance over it. Trigger icons (Soul, Treasure, Pool, Gate, Come Back, Draw, Shot, Standby, Choice, Bounce) are recognised from the icon on the card, climaxes with two icons get both, and the Counter box is ticked when the yellow fist icon is printed under the cost; check them, especially Bounce and Standby, and add any other kind by hand. Power is read from the number on the card; compare it with the zoomed crop, and type it in when it is empty. A digit the reader has never seen (such as 3) is learned after you type it once. Press Enter in a power box to jump to the next card.</p>
-      <div class="table-wrap"><table class="data imp-table"><thead><tr><th></th><th>Card</th><th>Power</th><th>Soul</th><th>Color</th><th>Trigger</th><th>Counter</th><th>Name (JP)</th></tr></thead><tbody id="rows">${rows}</tbody></table></div>
+      <div class="table-wrap"><table class="data imp-table"><thead><tr><th></th><th>Card</th><th>Power</th><th>Soul</th><th>Color</th><th>Trigger</th><th>Counter</th></tr></thead><tbody id="rows">${rows}</tbody></table></div>
       <datalist id="trig-list">${TRIGGERS.map((t) => `<option value="${t}">`).join('')}</datalist>`;
     this.updateMissing();
 
@@ -276,7 +274,6 @@ class Importer {
     if (k === 'power' && c.power && c.power % 500 === 0) learnPower(this.items[Number(e.target.closest('tr').dataset.i)].glyphs || [], String(c.power));
     else if (k === 'color') c.color = v || null;
     else if (k === 'triggers') c.triggers = canonicalTriggers(v.split(','));
-    else if (k === 'nameJp') c.nameJp = v || null;
     this.updateMissing();
   }
 

@@ -73,7 +73,7 @@ export function cardTile(card) {
 export function cardRow(card) {
   return `<tr>
     <td><a href="${cardHref(card.number)}">${esc(card.number)}</a></td>
-    <td><a href="${cardHref(card.number)}"><strong>${esc(card.name)}</strong></a><div class="muted small">${esc(card.nameJp || '')}</div></td>
+    <td><a href="${cardHref(card.number)}"><strong>${esc(card.name)}</strong></a></td>
     <td>${colorBadge(card.color)}</td><td>${esc(card.type)}</td>
     <td class="num">${card.level ?? '–'}</td><td class="num">${card.cost ?? '–'}</td><td class="num">${card.power ?? '–'}</td>
     <td class="num">${card.soul ?? '–'}</td><td>${esc(card.rarity)}</td></tr>`;

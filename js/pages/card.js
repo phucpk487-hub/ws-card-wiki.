@@ -51,7 +51,6 @@ export async function render({ db, path }) {
       </div>
       <div class="card-info">
         <h1>${esc(card.name)}</h1>
-        ${card.nameJp ? `<p class="subtitle">${esc(card.nameJp)}</p>` : ''}
         <div class="add-deck" id="add-deck"></div>
         <section aria-labelledby="eff"><h2 id="eff">Card text</h2>
           ${card.effect.length ? `<ul class="effects">${card.effect.map((e) => `<li>${formatEffect(e)}</li>`).join('')}</ul>` : '<p class="muted">No card text.</p>'}

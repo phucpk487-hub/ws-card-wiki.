@@ -91,7 +91,7 @@ export async function render({ db, query }) {
         <div><dt><code>level:</code> <code>cost:</code> <code>power:</code> <code>soul:</code></dt><dd><code>3</code>, <code>1-2</code>, <code>0,3</code>, <code>&gt;=2</code>, <code>&lt;5000</code>; power also takes <code>5k</code></dd></div>
         <div><dt><code>trigger:</code></dt><dd>soul, choice, … (the icon on the card)</dd></div>
         <div><dt><code>trait:</code> <code>rarity:</code> <code>set:</code> <code>series:</code> <code>effect:</code> <code>name:</code></dt><dd>text or code to look for</dd></div>
-        <div><dt><code>has:</code></dt><dd>image, trigger, soul, power, jp, counter</dd></div>
+        <div><dt><code>has:</code></dt><dd>image, trigger, soul, power, counter</dd></div>
         <div><dt><code>-</code> or <code>"…"</code></dt><dd><code>-type:event</code> excludes; <code>"top card"</code> matches a phrase</dd></div>
       </dl></details>
     <div class="toolbar">
