@@ -25,7 +25,6 @@ export async function render({ db, path }) {
   const row = (label, value) => `<tr><th scope="row">${label}</th><td>${value}</td></tr>`;
   const stats = [
     row('Card number', `<code>${esc(card.number)}</code> <button class="btn tiny" data-copy="${esc(card.number)}" aria-label="Copy card number">Copy</button>`),
-    row('Name (JP)', esc(card.nameJp || dash)),
     row('Type', esc(card.type)),
     row('Color', colorBadge(card.color)),
     ...(card.type !== 'Climax' ? [row('Level', card.level ?? dash), row('Cost', card.cost ?? dash)] : []),
