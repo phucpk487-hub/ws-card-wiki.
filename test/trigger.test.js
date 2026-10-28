@@ -41,3 +41,18 @@ test('counter icon: found on the counter card at several sizes, absent on other 
     assert.equal(hasCounterAt(px, c.w, c.h, c.cx, c.cy, c.size * 5 / 9), c.expect, c.name);
   }
 });
+
+import { soulAt } from '../js/import/trigger.js';
+test('Soul icon: only the black fleur on white counts, not dark art or empty slots', () => {
+  const cases = JSON.parse(readFileSync(new URL('./fixtures/soul-crops.json', import.meta.url)));
+  for (const c of cases) {
+    const rgba = new Uint8ClampedArray(Buffer.from(c.rgba, 'base64'));
+    assert.equal(!!soulAt(rgba, c.w, c.h, c.w / 2, c.h / 2, c.hex, 3), c.expect);
+  }
+  // Coloured icons and empty hexagons never read as Soul. Two of the "null" crops (indexes 11 and 13) are genuine Soul icons.
+  crops.forEach((c, i) => {
+    const rgba = new Uint8ClampedArray(Buffer.from(c.rgba, 'base64'));
+    const soul = !classifyAt(rgba, c.w, c.h, c.w / 2, c.h / 2, c.hex) && !!soulAt(rgba, c.w, c.h, c.w / 2, c.h / 2, c.hex, 3);
+    assert.equal(soul, i === 11 || i === 13, `crop ${i} (${c.expect}) soul=${soul}`);
+  });
+});

@@ -1,6 +1,6 @@
 // Canvas helpers for imported card images (color detection, power reading, soul counting, compression).
 import { bandRect, readPower } from './power.js';
-import { classifyTrigger, classifyClimax } from './trigger.js';
+import { classifyTrigger, classifyClimax, soulAt, SLOT } from './trigger.js';
 import { hasCounter } from './counter.js';
 
 /** Card color from the hue of the nameplate bar. Returns a color name or null. */
@@ -52,16 +52,16 @@ export function soulCount(canvas) {
   return n >= 1 && n <= 4 ? n : null;
 }
 
-/** True when the top-right trigger slot holds the opaque black Soul icon (same test as has_soul_trigger() in the converter). */
+/** True when the top-right trigger slot holds the Soul icon: a black fleur-de-lis on a white hexagon, with no coloured glyph.
+ *  (A plain "something dark in the corner" test also fired on dark artwork and on the black outline of other trigger icons.) */
 export function hasSoulTrigger(canvas) {
   const w = canvas.width, h = canvas.height;
   if (w > h) return false;
-  const cx = Math.round(.895 * w), cy = Math.round(.083 * h), r = Math.round(.045 * w);
-  let data;
-  try { data = canvas.getContext('2d').getImageData(cx - r, cy - r, 2 * r, 2 * r).data; } catch { return false; }
-  let dark = 0, n = 0;
-  for (let i = 0; i < data.length; i += 4, n++) if (Math.max(data[i], data[i + 1], data[i + 2]) / 255 < .22) dark++;
-  return dark / n >= .08;
+  try {
+    const px = canvas.getContext('2d').getImageData(0, 0, w, h).data;
+    if (classifyTrigger(px, w, h)) return false;               // a recognised coloured icon (Bounce is pale and looks a lot like Soul)
+    return !!soulAt(px, w, h, SLOT.x * w, SLOT.y * h, SLOT.hex * w, 3);
+  } catch { return false; }
 }
 
 /** Name of the coloured (non-Soul) trigger icon in the top-right slot, e.g. 'Treasure', or null. See trigger.js. */
