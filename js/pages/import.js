@@ -118,7 +118,7 @@ class Importer {
       if (r) { restoreHiddenSet(r.dataset.restore); this.start(); return; }
       const b = e.target.closest('[data-del]');
       if (!b) return;
-      if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Click again to delete'; setTimeout(() => { b.dataset.armed = ''; b.textContent = 'Delete'; }, 3000); return; }
+      if (b.dataset.armed !== '1') { const nm = (b.closest('.imp-row')?.querySelector('strong')?.textContent || 'this set').trim(); b.dataset.armed = '1'; b.textContent = `Delete “${nm}”? Click again`; setTimeout(() => { b.dataset.armed = ''; b.textContent = 'Delete'; }, 3000); return; }
       try { await deletePack(b.dataset.del); resetDb(); this.start(); } catch (err) { this.error = `Could not delete: ${err.message}`; this.start(); }
     });
   }

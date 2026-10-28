@@ -19,7 +19,7 @@
   <header class="site-header">
     <div class="bar">
       <a class="brand" href="#/" aria-label="Weiss Schwarz Card Wiki home"><span class="logo" aria-hidden="true">W<span>S</span></span><span class="brand-text">Card Wiki</span></a>
-      <button id="menu-btn" class="icon-btn menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="nav-links">☰</button>
+      <button id="menu-btn" class="icon-btn menu-btn" aria-label="Open menu" data-tip="Open menu" aria-expanded="false" aria-controls="nav-links">☰</button>
       <nav id="nav-links" class="nav" aria-label="Main">
         <a data-nav="home" href="#/">Home</a>
         <a data-nav="cards" href="#/cards">Cards</a>
@@ -28,10 +28,10 @@
         <a data-nav="import" href="#/import">Import</a>
       </nav>
       <form id="header-search" class="header-search" role="search" autocomplete="off">
-        <label class="sr-only" for="hq">Quick search</label>
+        <label class="sr-narrow" for="hq">Quick search</label>
         <input id="hq" name="q" type="search" placeholder="Search cards…">
       </form>
-      <button id="theme-btn" class="icon-btn" aria-label="Toggle theme">☾</button>
+      <button id="theme-btn" class="icon-btn" aria-label="Switch theme" data-tip="Switch theme">☾</button>
     </div>
   </header>
   <main id="main" tabindex="-1"></main>

@@ -20,7 +20,7 @@ export async function render({ db, path, query, navigate }) {
   const html = `<div class="container">
     <h1>Sets &amp; expansions</h1>
     <div class="toolbar">
-      <label class="sr-only" for="sq">Filter sets</label>
+      <label class="sr-narrow" for="sq">Filter sets</label>
       <input id="sq" type="search" class="grow" placeholder="Filter by name, code or series…" value="${esc(q)}">
       <label class="sel">Sort <select id="ss"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="name">Name</option></select></label>
     </div>

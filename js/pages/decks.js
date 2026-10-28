@@ -58,7 +58,7 @@ function list({ navigate }, byNumber) {
         else if ('toggleImport' in b.dataset) { const f = $('#imp'); f.hidden = !f.hidden; if (!f.hidden) $('#imp-text').focus(); }
         else if (b.dataset.dup) { const d = getDeck(b.dataset.dup); if (d) { saveDeck({ ...d, id: '', created: 0, name: `${d.name} (copy)` }); redraw(); } }
         else if (b.dataset.del) {
-          if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Click again to delete'; setTimeout(() => { b.dataset.armed = ''; b.textContent = 'Delete'; }, 3000); return; }
+          if (b.dataset.armed !== '1') { const nm = (b.closest('.deck-card')?.querySelector('h3')?.textContent || 'this deck').trim(); b.dataset.armed = '1'; b.textContent = `Delete “${nm}”? Click again`; setTimeout(() => { b.dataset.armed = ''; b.textContent = 'Delete'; }, 3000); return; }
           deleteDeck(b.dataset.del); redraw();
         }
       });
@@ -105,7 +105,7 @@ function editor({ db, path }, byNumber) {
     <div class="deck-tabs" role="tablist"><button role="tab" class="seg-btn" data-pane="cards" aria-pressed="true">Find cards</button><button role="tab" class="seg-btn" data-pane="deck" aria-pressed="false">Deck <span id="tabcount"></span></button></div>
     <div class="deck-layout show-cards" id="layout">
       <section class="deck-find" aria-label="Find cards">
-        <form id="dq" role="search" autocomplete="off"><label class="sr-only" for="dsearch">Search cards</label>
+        <form id="dq" role="search" autocomplete="off"><label class="sr-narrow" for="dsearch">Search cards</label>
           <input id="dsearch" type="search" placeholder="Search cards to add…"></form>
         <div class="chips" id="dfilters"></div>
         <div id="dresults"></div>
@@ -205,12 +205,12 @@ function editor({ db, path }, byNumber) {
         else if (d.ft) { const i = search.types.indexOf(d.ft); i < 0 ? search.types.push(d.ft) : search.types.splice(i, 1); search.pageSize = 30; drawFilters(); drawResults(); }
         else if (d.pane) { pane = d.pane; root.querySelector('#layout').className = `deck-layout show-${pane}`; root.querySelectorAll('[data-pane]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }
       });
-      const arm = (btn, label, fn) => btn.addEventListener('click', () => {
-        if (btn.dataset.armed !== '1') { btn.dataset.armed = '1'; btn.textContent = 'Click again to confirm'; setTimeout(() => { btn.dataset.armed = ''; btn.textContent = label; }, 3000); return; }
+      const arm = (btn, label, fn, ask) => btn.addEventListener('click', () => {
+        if (btn.dataset.armed !== '1') { btn.dataset.armed = '1'; btn.textContent = ask(); setTimeout(() => { btn.dataset.armed = ''; btn.textContent = label; }, 3000); return; }
         fn();
       });
-      arm($('#b-clear'), 'Clear deck', () => { deck = { ...deck, cards: {} }; persist(); drawAll(); $('#b-clear').textContent = 'Clear deck'; $('#b-clear').dataset.armed = ''; });
-      arm($('#b-delete'), 'Delete deck', () => { deleteDeck(deck.id); location.hash = '#/decks'; });
+      arm($('#b-clear'), 'Clear deck', () => { deck = { ...deck, cards: {} }; persist(); drawAll(); $('#b-clear').textContent = 'Clear deck'; $('#b-clear').dataset.armed = ''; }, () => `Clear all cards in “${deck.name}”? Click again`);
+      arm($('#b-delete'), 'Delete deck', () => { deleteDeck(deck.id); location.hash = '#/decks'; }, () => `Delete “${deck.name}”? Click again`);
 
       const box = $('#dtext');
       $('#b-export').addEventListener('click', () => {

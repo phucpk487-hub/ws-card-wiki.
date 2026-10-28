@@ -46,9 +46,9 @@ export function cardArt(card, { lazy = true } = {}) {
     return `<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" opacity="${0.06 + (i % 3) * 0.04}"/>`;
   }).join('');
   const lv = card.level !== null && card.level !== undefined
-    ? `<circle cx="9" cy="9" r="6.5" fill="#fff" opacity=".92"/><text x="9" y="12" text-anchor="middle" font-size="9" font-weight="700" fill="#222">${card.level}</text>` : '';
+    ? `<circle cx="9" cy="9" r="6.5" fill="#fff" opacity=".92"/><text x="9" y="12" text-anchor="middle" font-size="9" font-weight="600" fill="#222">${card.level}</text>` : '';
   const stats = card.type === 'Character'
-    ? `<text x="${W - 4}" y="${H - 4}" text-anchor="end" font-size="6.5" font-weight="700" fill="#fff">${card.power}</text>` : '';
+    ? `<text x="${W - 4}" y="${H - 4}" text-anchor="end" font-size="6.5" font-weight="600" fill="#fff">${card.power}</text>` : '';
   const title = card.name.length > 20 ? `${card.name.slice(0, 19)}…` : card.name;
   const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(alt)}" xmlns="http://www.w3.org/2000/svg">
     <defs><linearGradient id="g${h}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs>

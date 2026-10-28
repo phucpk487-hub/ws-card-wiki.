@@ -20,7 +20,8 @@ export function initTheme(button) {
   applyTheme(currentTheme());
   const sync = () => {
     const t = document.documentElement.dataset.theme;
-    button.setAttribute('aria-label', t === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+    const label = t === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+    button.setAttribute('aria-label', label); button.dataset.tip = label;
     button.setAttribute('aria-pressed', String(t === 'dark'));
     button.textContent = t === 'dark' ? '☀' : '☾';
   };

@@ -25,7 +25,7 @@ export async function render({ db }) {
       <h1>Weiss Schwarz <span class="accent">Card Wiki</span></h1>
       <p class="lead">Search cards, read full effects, browse sets, and build decks.</p>
       <form class="searchbar" id="home-search" role="search" autocomplete="off">
-        <label class="sr-only" for="home-q">Search cards</label>
+        <label class="sr-narrow" for="home-q">Search cards</label>
         <input id="home-q" name="q" type="search" placeholder="Search by name, effect text, trait, or number…" autofocus>
         <button class="btn primary" type="submit">Search</button>
       </form>

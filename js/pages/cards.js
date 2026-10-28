@@ -77,7 +77,7 @@ export async function render({ db, query }) {
   <div class="container">
     <h1>Card database</h1>
     <form class="searchbar" id="card-search" role="search" autocomplete="off">
-      <label class="sr-only" for="q">Search cards</label>
+      <label class="sr-narrow" for="q">Search cards</label>
       <input id="q" name="q" type="search" value="${esc(state.q)}" placeholder='Search name, effect, trait… e.g. backup trait:magic -event'>
       <button class="btn primary" type="submit">Search</button>
     </form>
