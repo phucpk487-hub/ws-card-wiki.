@@ -19,7 +19,6 @@
   <header class="site-header">
     <div class="bar">
       <a class="brand" href="#/" aria-label="Weiss Schwarz Card Wiki home"><span class="logo" aria-hidden="true">W<span>S</span></span><span class="brand-text">Card Wiki</span></a>
-      <button id="menu-btn" class="icon-btn menu-btn" aria-label="Open menu" data-tip="Open menu" aria-expanded="false" aria-controls="nav-links">☰</button>
       <nav id="nav-links" class="nav" aria-label="Main">
         <a data-nav="home" href="#/">Home</a>
         <a data-nav="cards" href="#/cards">Cards</a>
@@ -41,6 +40,14 @@
       <p class="muted">Card text and images belong to their respective owners and are shown for reference.</p>
     </div>
   </footer>
+
+  <nav class="tabbar" aria-label="Main">
+    <a data-nav="home" href="#/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg><span>Home</span></a>
+    <a data-nav="cards" href="#/cards"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M9 8h6M9 12h6"/></svg><span>Cards</span></a>
+    <a data-nav="sets" href="#/sets"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4-8 4zM4 12l8 4 8-4M4 16l8 4 8-4"/></svg><span>Sets</span></a>
+    <a data-nav="decks" href="#/decks"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="12" height="14" rx="2"/><path d="M8 4h11a1 1 0 011 1v12"/></svg><span>Decks</span></a>
+    <a data-nav="import" href="#/import"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span>Import</span></a>
+  </nav>
   <noscript><p style="padding:1rem">This site needs JavaScript to run.</p></noscript>
   <script type="module" src="js/app.js"></script>
 </body>

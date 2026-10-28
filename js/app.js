@@ -27,13 +27,12 @@ async function route() {
   const { path, query } = parseHash();
   const key = path[0] || '';
   const nav = NAV_OF[key] ?? key;
+  document.body.dataset.page = key || 'home';
   document.querySelectorAll('[data-nav]').forEach((a) => {
     const on = a.dataset.nav === nav;
     a.classList.toggle('active', on);
     if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   });
-  document.getElementById('nav-links').classList.remove('open');
-  document.getElementById('menu-btn').setAttribute('aria-expanded', 'false');
 
   main.innerHTML = skeletonPage();
   try {
@@ -64,10 +63,6 @@ async function route() {
 }
 
 initTheme(document.getElementById('theme-btn'));
-document.getElementById('menu-btn').addEventListener('click', (e) => {
-  const open = document.getElementById('nav-links').classList.toggle('open');
-  e.currentTarget.setAttribute('aria-expanded', String(open));
-});
 document.getElementById('header-search').addEventListener('submit', (e) => {
   e.preventDefault();
   const q = new FormData(e.target).get('q').toString().trim();

@@ -1,6 +1,7 @@
 import { searchCards, buildFacets, SORTS, PAGE_SIZE, paramsToQuery, queryToParams, parseQuery, describeClause } from '../lib/search.js';
 import { esc, cardTile, cardRow, chip, colorDot, emptyState } from '../lib/ui.js';
 import { replaceQuery } from '../lib/router.js';
+import { savedView, saveView } from '../lib/recent.js';
 
 const GROUPS = [
   ['colors', 'Color'], ['types', 'Type'], ['levels', 'Level'], ['souls', 'Soul'], ['rarities', 'Rarity'],
@@ -10,6 +11,7 @@ const GROUPS = [
 export async function render({ db, query }) {
   const facets = buildFacets(db.cards);
   const state = queryToParams(query);
+  if (!query.get('view')) state.view = savedView();
   let filtersOpen = false;
 
   const RANGES = [['cost', 'Cost', 'costMin', 'costMax'], ['power', 'Power', 'powerMin', 'powerMax']];
@@ -156,7 +158,7 @@ export async function render({ db, query }) {
           const k = t.dataset.f, v = t.dataset.v, has = state[k].map(String).includes(v);
           state[k] = has ? state[k].filter((x) => String(x) !== v) : [...state[k], v];
           reset();
-        } else if (t.dataset.view) { state.view = t.dataset.view; root.querySelectorAll('[data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b === t))); draw({ filters: false }); }
+        } else if (t.dataset.view) { state.view = t.dataset.view; saveView(state.view); root.querySelectorAll('[data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b === t))); draw({ filters: false }); }
         else if (t.dataset.page) { state.page = Number(t.dataset.page); draw({ filters: false }); window.scrollTo({ top: 0, behavior: 'smooth' }); }
         else if ('clearQ' in t.dataset) { state.q = ''; $('#q').value = ''; reset(); }
         else if ('clearAll' in t.dataset) {

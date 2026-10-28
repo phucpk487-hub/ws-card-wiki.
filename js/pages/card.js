@@ -2,6 +2,7 @@ import { findCard, cardsInSet, findSet } from '../lib/db.js';
 import { relatedCards } from '../lib/search.js';
 import { listDecks, saveDeck } from '../lib/deckStore.js';
 import { canAdd, withCard, countOf, emptyDeck } from '../lib/deck.js';
+import { pushRecent } from '../lib/recent.js';
 import { esc, displayName, cardArt, cardTile, colorBadge, formatEffect, triggerBadge, searchHref, setHref, cardHref, emptyState } from '../lib/ui.js';
 
 export async function render({ db, path }) {
@@ -67,6 +68,14 @@ export async function render({ db, path }) {
     title: displayName(card),
     html,
     mount(root, { db }) {
+      pushRecent(card.number);
+      const key = (e) => {
+        if (e.target.closest && e.target.closest('input,select,textarea') || e.altKey || e.ctrlKey || e.metaKey) return;
+        const to = e.key === 'ArrowLeft' ? prev : e.key === 'ArrowRight' ? next : null;
+        if (to) location.hash = cardHref(to.number);
+      };
+      document.addEventListener('keydown', key);
+      window.addEventListener('hashchange', () => document.removeEventListener('keydown', key), { once: true });
       const byNumber = new Map(db.cards.map((c) => [c.number, c]));
       const box = root.querySelector('#add-deck');
       let msg = '', pick = '';
