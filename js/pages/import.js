@@ -148,10 +148,10 @@ class Importer {
           card.color = detectColor(canvas);
           if (card.type === 'Character') { item.crop = powerCrop(canvas); item.soul = soulCount(canvas); const pw = readPowerCanvas(canvas, templates); item.power = pw.value; item.glyphs = pw.glyphs; }
           // An Event prints no power or soul. The sheet header of some Events looks like a Character's, so also treat a card as an Event
-          // when it is called "Event", or has no traits and no readable power (Events print neither). The review screen lets you undo this.
-          if (card.type === 'Character' && (/^event$/i.test(card.name) || (!card.traits.length && item.power == null))) {
+          // when it is called "Event", or no power could be read and there is no soul icon (or no traits): Events print none of these. The review screen lets you undo this.
+          if (card.type === 'Character' && (/^event$/i.test(card.name) || (item.power == null && (item.soul == null || !card.traits.length)))) {
             card.type = 'Event'; item.power = null; item.glyphs = []; item.crop = null; item.soul = null;
-            this.warnings.push(`${card.number}: read as an Event (no traits and no power); change the type if that is wrong.`);
+            this.warnings.push(`${card.number}: read as an Event (no power and no soul icon, or no power and no traits); change the type if that is wrong.`);
           }
           item.soulTrigger = card.type !== 'Climax' && hasSoulTrigger(canvas);
           if (item.soulTrigger && !card.triggers.includes('Soul')) card.triggers.push('Soul');
