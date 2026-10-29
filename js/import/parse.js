@@ -67,7 +67,7 @@ export function parseBlock(number, headerLines, paras, rarities, warnings) {
     const cx = CX_HDR.exec(header);
     if (cx) { const kind = cx[2].trim(); Object.assign(card, { type: 'Climax', printTag: cx[1], name: `${kind} CX`, triggers: [kind] }); }
     else if ((m = GENERIC_HDR.exec(header))) {
-      const ev = /^(EV|EVENT)$/i.test(m[1]);
+      const ev = /^(EV|EVENT)$/i.test(m[1]) || /^event$/i.test(m[4].trim());   // "(C) 1/0 Event": the card is literally called Event
       Object.assign(card, { type: ev ? 'Event' : 'Character', printTag: m[1].toUpperCase(), level: +m[2], cost: +m[3], name: m[4] });
       if (!ev) warnings.push(`${number}: no trait list in header "${header}"; check the type on the review screen`);
     } else { warnings.push(`${number}: unrecognised header "${header}"; set its type on the review screen`); card.name = header || number; card.type = 'Character'; }

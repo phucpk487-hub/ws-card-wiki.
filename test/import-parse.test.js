@@ -47,6 +47,11 @@ test('Event headers are read (with or without a trailing trait list)', () => {
   assert.equal(ch.type, 'Character');
 });
 
+test('a trait-less "(C) 1/0 Event" header is an Event without a warning', () => {
+  const r = parseBlock('STS/W140-029', ['(C) 1/0 Event'], ['[ACT] Do something.'], ['C'], []);
+  assert.equal(r.type, 'Event'); assert.equal(r.level, 1); assert.equal(r.cost, 0);
+});
+
 test('has:counter finds cards with the counter icon', () => {
   const cards = [{ number: 'A', name: 'a', type: 'Event', counter: true }, { number: 'B', name: 'b', type: 'Character', counter: false }, { number: 'C', name: 'c', type: 'Character' }];
   assert.deepEqual(searchCards(cards, { q: 'has:counter' }).items.map((c) => c.number), ['A']);
