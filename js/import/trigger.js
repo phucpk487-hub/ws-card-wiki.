@@ -101,14 +101,16 @@ export function soulAt(rgba, w, h, cx, cy, hex, span = 2) {
   let best = null;
   for (const dx of shifts) for (const dy of shifts) {
     const x = cx + dx, y = cy + dy, rad = .42 * hex;
-    let n = 0, dark = 0, white = 0, colour = 0;
+    let n = 0, dark = 0, white = 0, colour = 0, cN = 0, cDark = 0, aN = 0, aWhite = 0;
     for (let yy = Math.max(0, Math.floor(y - rad)); yy < Math.min(h, Math.ceil(y + rad)); yy++) for (let xx = Math.max(0, Math.floor(x - rad)); xx < Math.min(w, Math.ceil(x + rad)); xx++) {
       if (Math.hypot(xx - x, yy - y) > rad) continue;
       const i = (yy * w + xx) * 4, r = rgba[i], g = rgba[i + 1], b = rgba[i + 2], mx = Math.max(r, g, b), mn = Math.min(r, g, b);
       n++; if (mx < 64) dark++; else if (mx > 204 && (mx - mn) / mx < .2) white++;
+      const q = Math.hypot(xx - x, yy - y) / hex;                  // the fleur is a dark blob in the middle of a white hexagon
+      if (q < .2) { cN++; if (mx < 64) cDark++; } else if (q >= .22) { aN++; if (mx > 204 && (mx - mn) / mx < .2) aWhite++; }
       if (mx > 77 && (mx - mn) / mx > .28) colour++;
     }
-    if (n && colour / n < .08 && dark / n >= .1 && dark / n <= .55 && white / n >= .25 && ringDark(rgba, w, h, x, y, hex) >= .08) { const score = Math.abs(dx) + Math.abs(dy); if (!best || score < best.score) best = { dx, dy, score }; }
+    if (n && colour / n < .08 && dark / n >= .1 && dark / n <= .55 && white / n >= .25 && cN && cDark / cN >= .25 && aN && aWhite / aN >= .4 && ringDark(rgba, w, h, x, y, hex) >= .08) { const score = Math.abs(dx) + Math.abs(dy); if (!best || score < best.score) best = { dx, dy, score }; }
   }
   return best;
 }
