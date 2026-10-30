@@ -19,6 +19,13 @@ const NAV_OF = { '': 'home', card: 'cards', set: 'sets', deck: 'decks' };
 
 const main = document.getElementById('main');
 let renderId = 0;
+// Back/forward should land where you were: remember the scroll position of each page, restore it when a history step brings you back.
+const scrollAt = new Map();
+let fromHistory = false;
+window.addEventListener('popstate', () => { fromHistory = true; });
+window.addEventListener('hashchange', (e) => {
+  try { scrollAt.set(new URL(e.oldURL).hash || '#/', window.scrollY); } catch { /* ignore */ }
+}, true);
 
 function navigate(hash) { if (location.hash === hash) route(); else location.hash = hash; }
 
@@ -51,7 +58,10 @@ async function route() {
     main.replaceChildren(root);
     document.title = `${page.title} · Weiss Schwarz Card Wiki`;
     page.mount?.(root, { navigate, db });
-    window.scrollTo(0, 0);
+    const back = fromHistory; fromHistory = false;
+    const y = back ? scrollAt.get(location.hash || '#/') || 0 : 0;
+    window.scrollTo(0, y);
+    if (y) { requestAnimationFrame(() => window.scrollTo(0, y)); setTimeout(() => window.scrollTo(0, y), 250); } // images settle after first paint
     main.focus({ preventScroll: true });
   } catch (err) {
     if (id !== renderId) return;
