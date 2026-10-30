@@ -9,5 +9,5 @@ export function parseHash(hash = location.hash) {
 /** Replace the current URL query without adding history entries or re-rendering the page. */
 export function replaceQuery(path, params) {
   const qs = new URLSearchParams(params).toString();
-  history.replaceState(null, '', `#${path}${qs ? `?${qs}` : ''}`);
+  history.replaceState(history.state, '', `#${path}${qs ? `?${qs}` : ''}`);
 }

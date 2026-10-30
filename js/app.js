@@ -22,7 +22,9 @@ let renderId = 0;
 // Back/forward should land where you were: remember the scroll position of each page, restore it when a history step brings you back.
 const scrollAt = new Map();
 let fromHistory = false;
-window.addEventListener('popstate', () => { fromHistory = true; });
+// A history step (back/forward) lands on an entry we already stamped; a link click or typed hash lands on a fresh, unstamped one.
+let stamp = 0;
+window.addEventListener('popstate', (e) => { fromHistory = !!(e.state && e.state.i != null); });
 window.addEventListener('hashchange', (e) => {
   try { scrollAt.set(new URL(e.oldURL).hash || '#/', window.scrollY); } catch { /* ignore */ }
 }, true);
@@ -58,6 +60,7 @@ async function route() {
     main.replaceChildren(root);
     document.title = `${page.title} · Weiss Schwarz Card Wiki`;
     page.mount?.(root, { navigate, db });
+    if (!history.state || history.state.i == null) history.replaceState({ i: ++stamp }, '');
     const back = fromHistory; fromHistory = false;
     const y = back ? scrollAt.get(location.hash || '#/') || 0 : 0;
     window.scrollTo(0, y);
@@ -79,8 +82,21 @@ document.getElementById('header-search').addEventListener('submit', (e) => {
   e.target.reset();
   navigate(q ? searchHref({ q }) : '#/cards');
 });
+// Phone back button: step back through the pages you opened; on the first page go Home; on Home leave the app.
+// (The native default quits the app straight away because it cannot see our hash history.)
+let depth = 0;
+window.addEventListener('hashchange', () => { if (!fromHistory) depth++; });
 window.addEventListener('hashchange', route);
 route();
+const NativeApp = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+if (NativeApp && NativeApp.addListener) {
+  NativeApp.addListener('backButton', () => {
+    const home = !location.hash || location.hash === '#' || location.hash === '#/';
+    if (depth > 0) { depth--; history.back(); }
+    else if (!home) location.hash = '#/';
+    else NativeApp.exitApp();
+  });
+}
 
 // The skip link must not change the hash, or the router would treat "#main" as a route.
 document.querySelector('.skip')?.addEventListener('click', (e) => { e.preventDefault(); main.focus(); });

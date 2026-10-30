@@ -8,7 +8,7 @@
     "start": "python3 -m http.server 8080",
     "test": "node --test test/*.test.js",
     "build:app": "node tools/build-app.mjs",
-    "app:setup": "npm i -D @capacitor/cli && npm i @capacitor/core @capacitor/android @capacitor/ios @capacitor/filesystem @capacitor/share",
+    "app:setup": "npm i -D @capacitor/cli && npm i @capacitor/core @capacitor/android @capacitor/ios @capacitor/app @capacitor/filesystem @capacitor/share",
     "app:android": "npm run build:app && npx cap sync android",
     "app:ios": "npm run build:app && npx cap sync ios"
   }
