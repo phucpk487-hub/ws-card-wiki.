@@ -72,6 +72,11 @@ export function parseBlock(number, headerLines, paras, rarities, warnings) {
       if (!ev) warnings.push(`${number}: no trait list in header "${header}"; check the type on the review screen`);
     } else { warnings.push(`${number}: unrecognised header "${header}"; set its type on the review screen`); card.name = header || number; card.type = 'Character'; }
   }
+  // Safety net: if a trait list is still glued to the name (header cut oddly), split it off rather than lose the traits.
+  if (!card.traits.length && card.name) {
+    const g = /^(.+?)\s*\(([^()]*)\)?\s*$/.exec(card.name);
+    if (g && g[2].includes('/')) { card.name = g[1].trim(); card.traits = g[2].split('/').map((t) => t.trim()).filter(Boolean); warnings.push(`${number}: the trait list was attached to the name; split it off, please check the traits`); }
+  }
   for (const p of rest) {
     if (/^note:/i.test(p)) {
       const note = p.slice(5).trim(); card.notes.push(note);

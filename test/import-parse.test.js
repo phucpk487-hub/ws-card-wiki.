@@ -87,3 +87,9 @@ test('a wrapped trait list stays out of the card name', () => {
   assert.deepEqual(cards[0].traits, ['Anniversary', 'Magic', 'Disciplinary Committee', 'Pen']);
   assert.equal(cards[0].effect.length, 1);
 });
+
+test('a trait list left glued to the name is split off', () => {
+  const warnings = [];
+  const c = parseBlock('DC/W128-059', ['(SR) 1/0 Nemu (Anniversary/Magic/Disciplinary'], ['Committee/Pen) not closed in the header'], ['SR'], warnings);
+  assert.equal(c.name, 'Nemu'); assert.deepEqual(c.traits.slice(0, 2), ['Anniversary', 'Magic']);
+});
