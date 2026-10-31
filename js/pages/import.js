@@ -184,7 +184,7 @@ class Importer {
             mainP = toBlob(canvas);
           } else {
           card.color = detectColor(canvas);
-          if (card.type === 'Character') { item.crop = powerCrop(canvas); item.soul = soulCount(canvas); const pw = readPowerCanvas(canvas, templates); item.power = pw.value; item.glyphs = pw.glyphs; }
+          if (card.type === 'Character') { item.crop = powerCrop(canvas); item.soul = soulCount(canvas); const pw = readPowerCanvas(canvas, templates); item.power = card._hp ?? pw.value; item.glyphs = pw.glyphs; }
           // An Event prints no power or soul. The sheet header of some Events looks like a Character's, so also treat a card as an Event
           // when it is called "Event", or no power could be read and there is no soul icon (or no traits): Events print none of these. The review screen lets you undo this.
           if (card.type === 'Character' && (/^event$/i.test(card.name) || (item.power == null && (item.soul == null || !card.traits.length)))) {
@@ -331,7 +331,7 @@ class Importer {
       const id = slug(form.code), images = new Map();
       const cards = this.items.map((it) => {
         const c = it.card, s = slug(c.number), out = { ...c };
-        delete out._img; delete out._table;
+        delete out._img; delete out._table; delete out._hp;
         Object.assign(out, { series: form.series, set: form.code, rarity: (c.rarities && c.rarities[0]) || '', flavor: '', illustrator: '', image: null, altImages: [] });
         const ext = (b) => (b.type === 'image/webp' ? 'webp' : 'jpg');
         if (it.mainBlob) { const k = `${id}/${s}.${ext(it.mainBlob)}`; images.set(k, it.mainBlob); out.image = `idb:${k}`; }

@@ -3,7 +3,8 @@
 
 export const RARITY_TOKENS = ['SSP', 'BDR', 'SP', 'SR', 'RR', 'R', 'U', 'C'];
 const NUM_RE = /^([A-Z0-9]+\/[A-Z0-9]+-\d+[A-Za-z]*)$/;
-const CHAR_HDR = /^\((\w+)\)\s+(\d+)\/(\d+)\s+(.+?)\s+\((.*)\)\s*$/;
+// Some sheets print the power after the trait list: "(U) 1/0 Nemu (Anniversary/Magic) - 3500".
+const CHAR_HDR = /^\((\w+)\)\s+(\d+)\/(\d+)\s+(.+?)\s+\((.*)\)(?:\s*-\s*(\d{3,5}))?\s*$/;
 // Events print no traits, so the trailing (…) is optional; the tag in front tells the type.
 const EVENT_HDR = /^\((EV|EVENT)\)\s+(\d+)\/(\d+)\s+(.+?)(?:\s+\(([^()]*)\))?\s*$/i;
 // Any other "(TAG) level/cost name" header (no trait list): Events by their tag, otherwise a trait-less Character.
@@ -63,12 +64,15 @@ export function parseBlock(number, headerLines, paras, rarities, warnings) {
     Object.assign(card, { type: 'Event', printTag: tag.toUpperCase(), level: +level, cost: +cost, name, traits: (traits || '').split('/').map((t) => t.trim()).filter(Boolean) });
   } else if (m) {
     Object.assign(card, { type: 'Character', printTag: m[1], level: +m[2], cost: +m[3], name: m[4], traits: m[5].split('/').map((t) => t.trim()).filter(Boolean) });
+    if (m[6]) card._hp = +m[6];
   } else {
     const cx = CX_HDR.exec(header);
     if (cx) { const kind = cx[2].trim(); Object.assign(card, { type: 'Climax', printTag: cx[1], name: `${kind} CX`, triggers: [kind] }); }
     else if ((m = GENERIC_HDR.exec(header))) {
       const ev = /^(EV|EVENT)$/i.test(m[1]) || /^event$/i.test(m[4].trim());   // "(C) 1/0 Event": the card is literally called Event
-      Object.assign(card, { type: ev ? 'Event' : 'Character', printTag: m[1].toUpperCase(), level: +m[2], cost: +m[3], name: m[4] });
+      const hp = /^(.*?)\s+-\s*(\d{3,5})$/.exec(m[4]);                       // "Mako Vanilla - 2000": power printed after a trait-less name
+      Object.assign(card, { type: ev ? 'Event' : 'Character', printTag: m[1].toUpperCase(), level: +m[2], cost: +m[3], name: hp ? hp[1] : m[4] });
+      if (hp && !ev) card._hp = +hp[2];
       if (!ev) warnings.push(`${number}: no trait list in header "${header}"; check the type on the review screen`);
     } else { warnings.push(`${number}: unrecognised header "${header}"; set its type on the review screen`); card.name = header || number; card.type = 'Character'; }
   }

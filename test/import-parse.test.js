@@ -93,3 +93,10 @@ test('a trait list left glued to the name is split off', () => {
   const c = parseBlock('DC/W128-059', ['(SR) 1/0 Nemu (Anniversary/Magic/Disciplinary'], ['Committee/Pen) not closed in the header'], ['SR'], warnings);
   assert.equal(c.name, 'Nemu'); assert.deepEqual(c.traits.slice(0, 2), ['Anniversary', 'Magic']);
 });
+
+test('power printed after the trait list in the header is read, and the traits split off', () => {
+  const c = parseBlock('DC/W128-059', ['(U) 1/0 Nemu (Anniversary/Magic/Disciplinary Committee) - 3500'], ['AUTO - Something.'], ['U'], []);
+  assert.equal(c.name, 'Nemu'); assert.deepEqual(c.traits, ['Anniversary', 'Magic', 'Disciplinary Committee']); assert.equal(c._hp, 3500);
+  const v = parseBlock('DC/W128-094', ['(C) 1/0 Mako Vanilla - 2000'], [], ['C'], []);
+  assert.equal(v.name, 'Mako Vanilla'); assert.equal(v._hp, 2000);
+});
