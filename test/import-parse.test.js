@@ -119,3 +119,11 @@ test('traits listed on their own line (a card with no ability text) are read; th
   parseBlock('DC/W128-095', ['(C) 1/0 Someone'], ['AUTO - Draw a card.'], ['C'], w2);
   assert.match(w2[0], /text after it starts: “AUTO - Draw a card\.”/);
 });
+
+test('missing traits are copied from the same card elsewhere (name, level, cost)', async () => {
+  const { fillTraits } = await import('../js/import/known.js');
+  const a = { card: { number: 'X-1', type: 'Character', name: 'Mako Vanilla', level: 1, cost: 0, traits: [] } };
+  const b = { card: { number: 'X-2', type: 'Character', name: 'Other', level: 1, cost: 0, traits: [] } };
+  const w = fillTraits([a, b], [{ number: 'Y-9', type: 'Character', name: 'mako vanilla', level: 1, cost: 0, traits: ['Anniversary', 'Cooking'] }]);
+  assert.deepEqual(a.card.traits, ['Anniversary', 'Cooking']); assert.deepEqual(b.card.traits, []); assert.equal(w.length, 1);
+});

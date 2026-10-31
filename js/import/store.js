@@ -84,3 +84,11 @@ export async function exportRawPacks() {
     }));
   } finally { db.close(); }
 }
+
+/** Cards of every saved set without images (used to copy missing traits from a reprint). */
+export async function listKnownCards() {
+  let db;
+  try { db = await open(); } catch { return []; }
+  try { return (await wrap(db.transaction('packs').objectStore('packs').getAll())).flatMap((p) => p.cards || []); }
+  catch { return []; } finally { db.close(); }
+}

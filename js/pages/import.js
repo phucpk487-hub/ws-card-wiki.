@@ -3,7 +3,8 @@ import { parseSheet } from '../import/parse.js';
 import { isTableSheet, parseTableSheet } from '../import/tableSheet.js';
 import { detectColor, powerCrop, soulCount, hasSoulTrigger, detectTrigger, detectClimaxTriggers, detectCounter, readPowerCanvas, toBlob } from '../import/images.js';
 import { powerTemplates, learnPower, learnedDigitsText } from '../import/powerLearn.js';
-import { savePack, deletePack, listPacks } from '../import/store.js';
+import { savePack, deletePack, listPacks, listKnownCards } from '../import/store.js';
+import { fillTraits } from '../import/known.js';
 import { resetDb } from '../lib/db.js';
 import { setsToJson, setsFromJson } from '../lib/backup.js';
 import { saveFile } from '../lib/files.js';
@@ -158,6 +159,9 @@ class Importer {
       if (!items.length) throw new Error('No card rows were found. This importer expects a sheet with card numbers like “ABC/S01-001” in the left column, or one table per card. Scanned (image-only) PDFs are not supported.');
       const seen = new Set();
       for (const { card } of items) { if (seen.has(card.number)) this.warnings.push(`duplicate card number ${card.number}`); seen.add(card.number); }
+      const filled = fillTraits(items, await listKnownCards());
+      for (const w of filled) { const num = w.split(':')[0]; this.warnings = this.warnings.filter((x) => !x.startsWith(`${num}: no trait list`)); }
+      this.warnings.push(...filled);
       this.form.code = items[0].card.number.replace(/-\d+[A-Za-z]*$/, '');
       pdf.destroy();
       this.items = items;
