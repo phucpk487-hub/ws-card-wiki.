@@ -141,9 +141,8 @@ class Importer {
     if (!file) { this.error = 'Choose a PDF file first.'; return this.start(); }
     try {
       this.progress('Opening PDF…', 2);
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      this.fileInfo = { size: bytes.length, head: String.fromCharCode(...bytes.slice(0, 8)).replace(/[^\x20-\x7e]/g, '?') };
-      const { pages, destroy } = await readPdf(bytes, { onProgress: (n, t) => this.progress(`Reading text, page ${n} of ${t}…`, 2 + (n / t) * 28) });
+      this.fileInfo = { size: file.size, head: String.fromCharCode(...new Uint8Array(await file.slice(0, 8).arrayBuffer())).replace(/[^\x20-\x7e]/g, '?') };
+      const { pages, destroy } = await readPdf(file, { onProgress: (n, t) => this.progress(`Reading text, page ${n} of ${t}…`, 2 + (n / t) * 28) });
       const parsed = isTableSheet(pages) ? parseTableSheet(pages) : parseSheet(pages);
       if (!parsed.cards.length) throw new Error('No card rows were found. This importer expects a sheet with card numbers like “ABC/S01-001” in the left column. Scanned (image-only) PDFs are not supported.');
       this.form.code = parsed.setCode;

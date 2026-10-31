@@ -55,9 +55,25 @@ function dataToCanvas(obj) {
  */
 export async function readPdf(data, { pdfjs, onProgress } = {}) {
   const lib = pdfjs || await loadPdfjs();
-  const task = lib.getDocument({ data });
+  // A File/Blob is read in pieces on demand (a 500 MB sheet never has to fit in memory at once); bytes are used as they are.
+  let src = { data };
+  if (typeof Blob !== 'undefined' && data instanceof Blob && lib.PDFDataRangeTransport) {
+    const range = new lib.PDFDataRangeTransport(data.size, new Uint8Array(await data.slice(0, 65536).arrayBuffer()));
+    range.requestDataRange = (begin, end) => { data.slice(begin, end).arrayBuffer().then((b) => range.onDataRange(begin, new Uint8Array(b))); };
+    src = { range, length: data.size, disableAutoFetch: true, disableStream: true };
+  } else if (typeof Blob !== 'undefined' && data instanceof Blob) src = { data: new Uint8Array(await data.arrayBuffer()) };
+  const task = lib.getDocument(src);
   const doc = await task.promise;
   const O = lib.OPS, pages = [];
+  // Decoded images are big. Keep only the page being used: after the scan below a page is released, and its pictures are decoded again
+  // on demand (cards are processed in page order, so this costs one decode per page).
+  let live = null;
+  const pageObjs = async (n) => {
+    if (live && live.n === n) return live;
+    if (live) { try { live.page.cleanup(); } catch { /* ignore */ } live = null; }
+    const pg = await doc.getPage(n); const ops = await pg.getOperatorList(); live = { n, page: pg, ops };
+    return live;
+  };
   for (let n = 1; n <= doc.numPages; n++) {
     onProgress?.(n, doc.numPages);
     const page = await doc.getPage(n);
@@ -81,14 +97,23 @@ export async function readPdf(data, { pdfjs, onProgress } = {}) {
       else if (fn === O.paintImageXObject || fn === O.paintInlineImageXObject || fn === O.paintImageXObjectRepeat) {
         const bb = bboxOfUnitSquare(ctm);
         const inline = fn === O.paintInlineImageXObject;
-        const name = inline ? null : args[0];
+        const name = inline ? null : args[0], order = images.length;
         images.push({
           x0: bb.minX - vx0, x1: bb.maxX - vx0, top: H - (bb.maxY - vy0), bottom: H - (bb.minY - vy0),
-          pixels: async () => dataToCanvas(inline ? args[0] : await new Promise((res) => page.objs.get(name, res))),
+          pixels: async () => {
+            if (inline) return dataToCanvas(args[0]);
+            // the page was released after the scan: decode it again and pick the same picture by its order on the page
+            const { page: pg, ops: fresh } = await pageObjs(n);
+            let seen = -1, nm = name;
+            for (let j = 0; j < fresh.fnArray.length; j++) { const f = fresh.fnArray[j]; if (f === O.paintImageXObject || f === O.paintInlineImageXObject || f === O.paintImageXObjectRepeat) { seen++; if (seen === order) { nm = fresh.argsArray[j][0]; break; } } }
+            const store = String(nm).startsWith('g_') ? pg.commonObjs : pg.objs;   // pictures used on several pages live in the shared store
+            return dataToCanvas(await new Promise((res) => store.get(nm, res)));
+          },
         });
       }
     }
     pages.push({ index: n - 1, width: W, height: H, words, images });
+    try { page.cleanup(); } catch { /* ignore */ }
   }
   return { pages, destroy: () => { try { task.destroy(); } catch { /* already gone */ } } };
 }
