@@ -1,4 +1,4 @@
-import { readPdf } from '../import/pdfReader.js';
+import { openPdf } from '../import/pdfReader.js';
 import { parseSheet } from '../import/parse.js';
 import { isTableSheet, parseTableSheet } from '../import/tableSheet.js';
 import { detectColor, powerCrop, soulCount, hasSoulTrigger, detectTrigger, detectClimaxTriggers, detectCounter, readPowerCanvas, toBlob } from '../import/images.js';
@@ -142,24 +142,46 @@ class Importer {
     try {
       this.progress('Opening PDF…', 2);
       this.fileInfo = { size: file.size, head: String.fromCharCode(...new Uint8Array(await file.slice(0, 8).arrayBuffer())).replace(/[^\x20-\x7e]/g, '?') };
-      const { pages, destroy } = await readPdf(file, { onProgress: (n, t) => this.progress(`Reading text, page ${n} of ${t}…`, 2 + (n / t) * 28) });
-      const parsed = isTableSheet(pages) ? parseTableSheet(pages) : parseSheet(pages);
-      if (!parsed.cards.length) throw new Error('No card rows were found. This importer expects a sheet with card numbers like “ABC/S01-001” in the left column. Scanned (image-only) PDFs are not supported.');
-      this.form.code = parsed.setCode;
-      this.warnings = parsed.warnings.slice();
-      const items = [], templates = powerTemplates();
-      for (let i = 0; i < parsed.cards.length; i++) {
-        this.progress(`Processing images, card ${i + 1} of ${parsed.cards.length}…`, 30 + (i / parsed.cards.length) * 68);
-        const card = parsed.cards[i], ref = card._img, pg = pages[ref.page];
+      const pdf = await openPdf(file);
+      const templates = powerTemplates(), items = [];
+      this.warnings = []; this.form.code = '';
+      // One page at a time: read its text, find its cards, read their pictures, then let go of the page's memory.
+      for (let n = 1; n <= pdf.numPages; n++) {
+        this.progress(`Reading page ${n} of ${pdf.numPages} (${items.length} cards so far)…`, 2 + ((n - 1) / pdf.numPages) * 96);
+        const model = await pdf.getPage(n);
+        const parsed = isTableSheet([model]) ? parseTableSheet([model]) : parseSheet([model]);
+        this.warnings.push(...parsed.warnings);
+        for (const card of parsed.cards) items.push(await this.processCard(card, model, templates));
+        pdf.release(n);
+        await new Promise((r) => setTimeout(r)); // let the progress bar paint
+      }
+      if (!items.length) throw new Error('No card rows were found. This importer expects a sheet with card numbers like “ABC/S01-001” in the left column, or one table per card. Scanned (image-only) PDFs are not supported.');
+      const seen = new Set();
+      for (const { card } of items) { if (seen.has(card.number)) this.warnings.push(`duplicate card number ${card.number}`); seen.add(card.number); }
+      this.form.code = items[0].card.number.replace(/-\d+[A-Za-z]*$/, '');
+      pdf.destroy();
+      this.items = items;
+      this.review();
+    } catch (err) {
+      console.error(err);
+      const friendly = { InvalidPDFException: this.invalidPdfMessage(), PasswordException: 'That PDF is password protected. Remove the password and try again.', MissingPDFException: 'That PDF could not be found.' };
+      this.error = friendly[err.name] || err.message || 'Could not read that PDF.';
+      this.start();
+    }
+  }
+
+  /** Read one card's pictures: colour, power, soul, triggers, counter; returns the review item. */
+  async processCard(card, model, templates) {
+        const ref = card._img, pg = model;
         const item = { card, mainBlob: null, altBlobs: [], crop: null, url: null };
+        let mainP = null;   // encoding runs off the main thread, so it overlaps with the analysis below and with the alternate pictures
         if (ref.main !== null) {
           const canvas = await pg.images[ref.main].pixels();
           if (card._table) {                       // table sheets print every value as text: use it, only check the Counter icon on the picture
             item.power = card.power; item.soul = card.soul; item.glyphs = [];
             if (!card.color) card.color = detectColor(canvas);
             card.counter = card.type !== 'Climax' && detectCounter(canvas);
-            item.mainBlob = await toBlob(canvas);
-            item.url = URL.createObjectURL(item.mainBlob); this.urls.push(item.url);
+            mainP = toBlob(canvas);
           } else {
           card.color = detectColor(canvas);
           if (card.type === 'Character') { item.crop = powerCrop(canvas); item.soul = soulCount(canvas); const pw = readPowerCanvas(canvas, templates); item.power = pw.value; item.glyphs = pw.glyphs; }
@@ -183,24 +205,14 @@ class Importer {
           }
           card.triggers = canonicalTriggers(card.triggers);
           card.counter = card.type !== 'Climax' && detectCounter(canvas);
-          item.mainBlob = await toBlob(canvas);
-          item.url = URL.createObjectURL(item.mainBlob); this.urls.push(item.url);
+          mainP = toBlob(canvas);
           }
         } else { if (!card._table) card.color = null; this.warnings.push(`${card.number}: the PDF has no image for this card.`); }
-        for (const a of ref.alts) item.altBlobs.push(await toBlob(await pg.images[a].pixels()));
+        const altP = ref.alts.map(async (a) => toBlob(await pg.images[a].pixels(), 420, .75));
+        if (mainP) { item.mainBlob = await mainP; item.url = URL.createObjectURL(item.mainBlob); this.urls.push(item.url); }
+        item.altBlobs = await Promise.all(altP);
         Object.assign(card, { power: card.type === 'Character' ? (item.power ?? null) : null, soul: card.type === 'Character' ? (item.soul ?? null) : null, counter: !!card.counter });
-        items.push(item);
-        if (i % 4 === 3) await new Promise((r) => setTimeout(r)); // let the progress bar paint
-      }
-      destroy?.();
-      this.items = items;
-      this.review();
-    } catch (err) {
-      console.error(err);
-      const friendly = { InvalidPDFException: this.invalidPdfMessage(), PasswordException: 'That PDF is password protected. Remove the password and try again.', MissingPDFException: 'That PDF could not be found.' };
-      this.error = friendly[err.name] || err.message || 'Could not read that PDF.';
-      this.start();
-    }
+        return item;
   }
 
   /* ───────── step 3: review and fill in what the PDF cannot tell us ───────── */

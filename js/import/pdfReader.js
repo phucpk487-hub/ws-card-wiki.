@@ -50,51 +50,47 @@ function dataToCanvas(obj) {
 }
 
 /**
- * @param {Uint8Array} data  the PDF bytes
- * @param {{pdfjs?: object, onProgress?: (page:number,total:number)=>void}} opts  pdfjs: inject a library (used by Node tests)
+ * Open a PDF for page-by-page reading. A File/Blob is read in pieces on demand (a 500 MB sheet never has to fit in memory at once);
+ * bytes are used as they are. getPage(n) builds the page model and keeps the page's decoded pictures until release(n) is called.
+ * @param {Uint8Array|Blob} data  the PDF
+ * @param {{pdfjs?: object}} opts  pdfjs: inject a library (used by Node tests)
  */
-export async function readPdf(data, { pdfjs, onProgress } = {}) {
+export async function openPdf(data, { pdfjs } = {}) {
   const lib = pdfjs || await loadPdfjs();
-  // A File/Blob is read in pieces on demand (a 500 MB sheet never has to fit in memory at once); bytes are used as they are.
   let src = { data };
   if (typeof Blob !== 'undefined' && data instanceof Blob && lib.PDFDataRangeTransport) {
-    const range = new lib.PDFDataRangeTransport(data.size, new Uint8Array(await data.slice(0, 65536).arrayBuffer()));
+    const CHUNK = 1 << 21;                                   // 2 MB per read: far fewer round trips than pdf.js's 64 KB default
+    const range = new lib.PDFDataRangeTransport(data.size, new Uint8Array(await data.slice(0, CHUNK).arrayBuffer()));
     range.requestDataRange = (begin, end) => { data.slice(begin, end).arrayBuffer().then((b) => range.onDataRange(begin, new Uint8Array(b))); };
-    src = { range, length: data.size, disableAutoFetch: true, disableStream: true };
+    src = { range, length: data.size, rangeChunkSize: CHUNK, disableAutoFetch: true, disableStream: true };
   } else if (typeof Blob !== 'undefined' && data instanceof Blob) src = { data: new Uint8Array(await data.arrayBuffer()) };
   const task = lib.getDocument(src);
   const doc = await task.promise;
-  const O = lib.OPS, pages = [];
-  // Decoded images are big. Keep only the page being used: after the scan below a page is released, and its pictures are decoded again
-  // on demand (cards are processed in page order, so this costs one decode per page).
-  let live = null;
-  const pageObjs = async (n) => {
-    if (live && live.n === n) return live;
-    if (live) { try { live.page.cleanup(); } catch { /* ignore */ } live = null; }
-    const pg = await doc.getPage(n); const ops = await pg.getOperatorList(); live = { n, page: pg, ops };
-    return live;
-  };
-  for (let n = 1; n <= doc.numPages; n++) {
-    onProgress?.(n, doc.numPages);
+  const O = lib.OPS;
+  let live = null;                                           // the one page whose decoded pictures are still in memory
+  const keep = (n, page, ops) => { live = { n, page, ops }; };
+  const release = (n) => { if (live && live.n === n) { try { live.page.cleanup(); } catch { /* ignore */ } live = null; } };
+  const isImage = (f) => f === O.paintImageXObject || f === O.paintInlineImageXObject || f === O.paintImageXObjectRepeat;
+
+  async function getPage(n) {
     const page = await doc.getPage(n);
     const [vx0, vy0, vx1, vy1] = page.view, W = vx1 - vx0, H = vy1 - vy0;
-
     const words = [];
     for (const it of (await page.getTextContent()).items) {
       if (!it.str || !it.str.trim()) continue;
       const [a, b, , , e, f] = it.transform;
       words.push({ str: it.str.trim(), x0: e - vx0, x1: e - vx0 + it.width, base: H - (f - vy0), size: Math.hypot(a, b) || it.height });
     }
-
     const images = [];
     const ops = await page.getOperatorList();
+    keep(n, page, ops);
     const stack = []; let ctm = [1, 0, 0, 1, 0, 0];
     for (let i = 0; i < ops.fnArray.length; i++) {
       const fn = ops.fnArray[i], args = ops.argsArray[i];
       if (fn === O.save) stack.push(ctm.slice());
       else if (fn === O.restore) ctm = stack.pop() || ctm;
       else if (fn === O.transform) ctm = mul(args, ctm);
-      else if (fn === O.paintImageXObject || fn === O.paintInlineImageXObject || fn === O.paintImageXObjectRepeat) {
+      else if (isImage(fn)) {
         const bb = bboxOfUnitSquare(ctm);
         const inline = fn === O.paintInlineImageXObject;
         const name = inline ? null : args[0], order = images.length;
@@ -102,18 +98,24 @@ export async function readPdf(data, { pdfjs, onProgress } = {}) {
           x0: bb.minX - vx0, x1: bb.maxX - vx0, top: H - (bb.maxY - vy0), bottom: H - (bb.minY - vy0),
           pixels: async () => {
             if (inline) return dataToCanvas(args[0]);
-            // the page was released after the scan: decode it again and pick the same picture by its order on the page
-            const { page: pg, ops: fresh } = await pageObjs(n);
+            let L = live && live.n === n ? live : null;
+            if (!L) { const pg = await doc.getPage(n); keep(n, pg, await pg.getOperatorList()); L = live; }   // released earlier: decode again
             let seen = -1, nm = name;
-            for (let j = 0; j < fresh.fnArray.length; j++) { const f = fresh.fnArray[j]; if (f === O.paintImageXObject || f === O.paintInlineImageXObject || f === O.paintImageXObjectRepeat) { seen++; if (seen === order) { nm = fresh.argsArray[j][0]; break; } } }
-            const store = String(nm).startsWith('g_') ? pg.commonObjs : pg.objs;   // pictures used on several pages live in the shared store
+            for (let j = 0; j < L.ops.fnArray.length; j++) if (isImage(L.ops.fnArray[j]) && ++seen === order) { nm = L.ops.argsArray[j][0]; break; }
+            const store = String(nm).startsWith('g_') ? L.page.commonObjs : L.page.objs;   // pictures used on several pages live in the shared store
             return dataToCanvas(await new Promise((res) => store.get(nm, res)));
           },
         });
       }
     }
-    pages.push({ index: n - 1, width: W, height: H, words, images });
-    try { page.cleanup(); } catch { /* ignore */ }
+    return { index: n - 1, width: W, height: H, words, images };
   }
-  return { pages, destroy: () => { try { task.destroy(); } catch { /* already gone */ } } };
+  return { numPages: doc.numPages, getPage, release, destroy: () => { try { task.destroy(); } catch { /* already gone */ } } };
+}
+
+/** All pages at once (used by tests and small files). */
+export async function readPdf(data, { pdfjs, onProgress } = {}) {
+  const pdf = await openPdf(data, { pdfjs }), pages = [];
+  for (let n = 1; n <= pdf.numPages; n++) { onProgress?.(n, pdf.numPages); pages.push(await pdf.getPage(n)); pdf.release(n); }
+  return { pages, destroy: pdf.destroy };
 }
