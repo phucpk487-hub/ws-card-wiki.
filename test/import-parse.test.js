@@ -73,3 +73,17 @@ test('per-card table sheets (Level/Cost/Power, Card No./Rarity/Color/Souls/Trigg
   assert.deepEqual([c.level, c.cost, c.triggers, c.effect], [null, null, ['Choice'], []]);
   assert.deepEqual(cards.map((x) => [x._img.main, x._img.alts.length]), [[0, 1], [2, 1], [4, 1]]);
 });
+
+test('a wrapped trait list stays out of the card name', () => {
+  const W = (str, x0, base) => ({ str, x0, x1: x0 + str.length * 3.5, base, size: 7.3 });
+  const page = { index: 0, width: 792, height: 612, images: [], words: [
+    W('DC/W128-059', 52, 75),
+    W('(SR) 1/0 Nemu (Anniversary/Magic/Disciplinary', 192, 75.5), W('Committee/Pen)', 192, 83.8),
+    W('AUTO', 192, 92), W('- When this attacks, draw 1 card.', 214, 92),
+    W('SR', 610, 75),
+  ] };
+  const { cards } = parseSheet([page]);
+  assert.equal(cards[0].name, 'Nemu');
+  assert.deepEqual(cards[0].traits, ['Anniversary', 'Magic', 'Disciplinary Committee', 'Pen']);
+  assert.equal(cards[0].effect.length, 1);
+});

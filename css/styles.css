@@ -405,3 +405,8 @@ body[data-page="home"] .bar { justify-content: space-between; }
   .seg-btn { padding: 8px 10px; }
 }
 @media (max-width: 760px) { .toolbar:has(#sort) .sel { font-size: 0; } .toolbar:has(#sort) .sel select { font-size: 1rem; } }
+
+/* A long unbroken name (e.g. a trait list inside parentheses) must not widen its grid column and make one tile bigger than the rest. */
+.tile { min-width: 0; }
+.tile-name { overflow-wrap: anywhere; }
+.grid { grid-template-columns: repeat(auto-fill, minmax(min(168px, 100%), 1fr)); }

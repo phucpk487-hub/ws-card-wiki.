@@ -112,8 +112,12 @@ export function parseSheet(pages) {
       const rarityText = rowWords.filter((w) => w.x0 >= rarityLo).map((w) => w.str).join(' ');
       const rarities = (rarityText.match(new RegExp(`\\b(?:${RARITY_TOKENS.join('|')})\\b`, 'g')) || []);
       const lines = toLines(text);
-      const headerLines = lines.length ? [lines[0].text] : [];
-      const paras = toParagraphs(lines.slice(1));
+      // A long trait list wraps onto the next line: keep joining lines while a "(" is still open, so the traits stay out of the name.
+      let used = lines.length ? 1 : 0, head = lines.length ? lines[0].text : '';
+      const open = (t) => (t.match(/\(/g) || []).length - (t.match(/\)/g) || []).length;
+      while (used < lines.length && used < 4 && open(head) > 0) { head += ` ${lines[used].text}`; used++; }
+      const headerLines = lines.length ? [head] : [];
+      const paras = toParagraphs(lines.slice(used));
       const card = parseBlock(n.str, headerLines, paras, rarities, warnings);
 
       // images whose top edge is closest to this row
