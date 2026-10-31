@@ -124,6 +124,14 @@ class Importer {
     });
   }
 
+  /** Say what is actually wrong with a file pdf.js rejected, so the cause is visible instead of a bare "not valid". */
+  invalidPdfMessage() {
+    const f = this.fileInfo || { size: 0, head: '' }, kb = Math.round(f.size / 1024);
+    if (!f.size) return 'That file is empty (0 KB). The phone could not read it from where it is stored: copy it to the Downloads folder and choose it again.';
+    if (!f.head.startsWith('%PDF')) return `That file (${kb} KB) is not a PDF: it starts with “${f.head}”. It may be a web page or a download that failed. Save the page as PDF (Print, then Save as PDF) and choose that file.`;
+    return `That PDF (${kb} KB) looks damaged or uses a format this reader cannot open. Open it in a PDF viewer and print it again to a new PDF (Print, then Save as PDF), then choose the new file.`;
+  }
+
   /* ───────── step 2: read + process ───────── */
   progress(text, value) {
     this.el.innerHTML = `<h1>Reading ${esc(this.file?.name || 'PDF')}</h1><div class="panel" role="status" aria-live="polite"><p>${esc(text)}</p><progress max="100" value="${Math.round(value)}"></progress></div>`;
@@ -134,6 +142,7 @@ class Importer {
     try {
       this.progress('Opening PDF…', 2);
       const bytes = new Uint8Array(await file.arrayBuffer());
+      this.fileInfo = { size: bytes.length, head: String.fromCharCode(...bytes.slice(0, 8)).replace(/[^\x20-\x7e]/g, '?') };
       const { pages, destroy } = await readPdf(bytes, { onProgress: (n, t) => this.progress(`Reading text, page ${n} of ${t}…`, 2 + (n / t) * 28) });
       const parsed = isTableSheet(pages) ? parseTableSheet(pages) : parseSheet(pages);
       if (!parsed.cards.length) throw new Error('No card rows were found. This importer expects a sheet with card numbers like “ABC/S01-001” in the left column. Scanned (image-only) PDFs are not supported.');
@@ -189,7 +198,7 @@ class Importer {
       this.review();
     } catch (err) {
       console.error(err);
-      const friendly = { InvalidPDFException: 'That file is not a valid PDF.', PasswordException: 'That PDF is password protected. Remove the password and try again.', MissingPDFException: 'That PDF could not be found.' };
+      const friendly = { InvalidPDFException: this.invalidPdfMessage(), PasswordException: 'That PDF is password protected. Remove the password and try again.', MissingPDFException: 'That PDF could not be found.' };
       this.error = friendly[err.name] || err.message || 'Could not read that PDF.';
       this.start();
     }
