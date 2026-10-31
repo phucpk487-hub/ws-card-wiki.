@@ -125,6 +125,10 @@ export function parseSheet(pages) {
       let used = lines.length ? 1 : 0, head = lines.length ? lines[0].text : '';
       const open = (t) => (t.match(/\(/g) || []).length - (t.match(/\)/g) || []).length;
       while (used < lines.length && used < 4 && open(head) > 0) { head += ` ${lines[used].text}`; used++; }
+      // The line may also break before the trait list ("(C) 1/0 Mako Vanilla" / "(Anniversary/Cooking) - 5500") or before the printed power.
+      const whole = (t) => CHAR_HDR.test(t) || (EVENT_HDR.test(t) && /^\((EV|EVENT)\)/i.test(t)) || CX_HDR.test(t);
+      if (lines.length && !whole(head) && used < lines.length && /^\(/.test(lines[used].text) && whole(`${head} ${lines[used].text}`)) { head += ` ${lines[used].text}`; used++; }
+      if (used < lines.length && /^-\s*\d{3,5}$/.test(lines[used].text) && !/-\s*\d{3,5}$/.test(head)) { head += ` ${lines[used].text}`; used++; }
       const headerLines = lines.length ? [head] : [];
       const paras = toParagraphs(lines.slice(used));
       const card = parseBlock(n.str, headerLines, paras, rarities, warnings);

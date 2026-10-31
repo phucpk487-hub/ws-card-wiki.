@@ -100,3 +100,13 @@ test('power printed after the trait list in the header is read, and the traits s
   const v = parseBlock('DC/W128-094', ['(C) 1/0 Mako Vanilla - 2000'], [], ['C'], []);
   assert.equal(v.name, 'Mako Vanilla'); assert.equal(v._hp, 2000);
 });
+
+test('a header that breaks before its trait list or before the power is still read as one header', () => {
+  const W = (str, x0, base) => ({ str, x0, x1: x0 + str.length * 3.5, base, size: 7.3 });
+  const mk = (...hdr) => ({ index: 0, width: 792, height: 612, images: [], words: [W('DC/W128-094', 52, 75), ...hdr.map((t, i) => W(t, 192, 75.5 + i * 8.3)), W('AUTO', 192, 100), W('- Do a thing.', 214, 100)] });
+  for (const p of [mk('(C) 1/0 Mako Vanilla', '(Anniversary/Cooking) - 5500'), mk('(C) 1/0 Mako Vanilla (Anniversary/Cooking)', '- 5500')]) {
+    const { cards } = parseSheet([p]);
+    assert.equal(cards[0].name, 'Mako Vanilla'); assert.deepEqual(cards[0].traits, ['Anniversary', 'Cooking']); assert.equal(cards[0]._hp, 5500);
+    assert.deepEqual(cards[0].effect, ['[AUTO] Do a thing.']);
+  }
+});
