@@ -110,3 +110,12 @@ test('a header that breaks before its trait list or before the power is still re
     assert.deepEqual(cards[0].effect, ['[AUTO] Do a thing.']);
   }
 });
+
+test('traits listed on their own line (a card with no ability text) are read; the note shows what follows when they are missing', () => {
+  const w = [];
+  const c = parseBlock('DC/W128-094', ['(C) 1/0 Mako Vanilla'], ['Anniversary/Cooking - 5500'], ['C'], w);
+  assert.deepEqual(c.traits, ['Anniversary', 'Cooking']); assert.equal(c._hp, 5500); assert.equal(w.length, 0); assert.equal(c.effect.length, 0);
+  const w2 = [];
+  parseBlock('DC/W128-095', ['(C) 1/0 Someone'], ['AUTO - Draw a card.'], ['C'], w2);
+  assert.match(w2[0], /text after it starts: “AUTO - Draw a card\.”/);
+});

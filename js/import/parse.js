@@ -73,8 +73,16 @@ export function parseBlock(number, headerLines, paras, rarities, warnings) {
       const hp = /^(.*?)\s+-\s*(\d{3,5})$/.exec(m[4]);                       // "Mako Vanilla - 2000": power printed after a trait-less name
       Object.assign(card, { type: ev ? 'Event' : 'Character', printTag: m[1].toUpperCase(), level: +m[2], cost: +m[3], name: hp ? hp[1] : m[4] });
       if (hp && !ev) card._hp = +hp[2];
-      if (!ev) warnings.push(`${number}: no trait list in header "${header}"; check the type on the review screen`);
+      if (!ev) warnings.push(`${number}: no trait list in header "${header}"${rest.length ? `; the text after it starts: “${rest[0].slice(0, 70)}”` : '; nothing follows it in the PDF'}; check the traits on the review screen`);
     } else { warnings.push(`${number}: unrecognised header "${header}"; set its type on the review screen`); card.name = header || number; card.type = 'Character'; }
+  }
+  // A card with no ability text may list its traits on their own line, e.g. "Anniversary/Cooking" or "(Anniversary/Cooking) - 5500".
+  if (card.type === 'Character' && !card.traits.length && rest.length) {
+    const t = /^\(?([^()\d:.][^()]*?\/[^()]*?)\)?(?:\s*-\s*(\d{3,5}))?$/.exec(rest[0].trim());
+    if (t && !/^(AUTO|CONT|ACT|Note)\b/i.test(t[1]) && t[1].split('/').every((x) => x.trim().length > 1 && x.trim().length < 30)) {
+      card.traits = t[1].split('/').map((x) => x.trim()); if (t[2]) card._hp = +t[2]; rest = rest.slice(1);
+      for (let i = warnings.length - 1; i >= 0; i--) if (warnings[i].startsWith(`${number}: no trait list`)) warnings.splice(i, 1);
+    }
   }
   // Safety net: if a trait list is still glued to the name (header cut oddly), split it off rather than lose the traits.
   if (!card.traits.length && card.name) {
