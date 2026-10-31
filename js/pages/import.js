@@ -1,5 +1,6 @@
 import { readPdf } from '../import/pdfReader.js';
 import { parseSheet } from '../import/parse.js';
+import { isTableSheet, parseTableSheet } from '../import/tableSheet.js';
 import { detectColor, powerCrop, soulCount, hasSoulTrigger, detectTrigger, detectClimaxTriggers, detectCounter, readPowerCanvas, toBlob } from '../import/images.js';
 import { powerTemplates, learnPower, learnedDigitsText } from '../import/powerLearn.js';
 import { savePack, deletePack, listPacks } from '../import/store.js';
@@ -134,7 +135,7 @@ class Importer {
       this.progress('Opening PDF…', 2);
       const bytes = new Uint8Array(await file.arrayBuffer());
       const { pages, destroy } = await readPdf(bytes, { onProgress: (n, t) => this.progress(`Reading text, page ${n} of ${t}…`, 2 + (n / t) * 28) });
-      const parsed = parseSheet(pages);
+      const parsed = isTableSheet(pages) ? parseTableSheet(pages) : parseSheet(pages);
       if (!parsed.cards.length) throw new Error('No card rows were found. This importer expects a sheet with card numbers like “ABC/S01-001” in the left column. Scanned (image-only) PDFs are not supported.');
       this.form.code = parsed.setCode;
       this.warnings = parsed.warnings.slice();
@@ -145,6 +146,13 @@ class Importer {
         const item = { card, mainBlob: null, altBlobs: [], crop: null, url: null };
         if (ref.main !== null) {
           const canvas = await pg.images[ref.main].pixels();
+          if (card._table) {                       // table sheets print every value as text: use it, only check the Counter icon on the picture
+            item.power = card.power; item.soul = card.soul; item.glyphs = [];
+            if (!card.color) card.color = detectColor(canvas);
+            card.counter = card.type !== 'Climax' && detectCounter(canvas);
+            item.mainBlob = await toBlob(canvas);
+            item.url = URL.createObjectURL(item.mainBlob); this.urls.push(item.url);
+          } else {
           card.color = detectColor(canvas);
           if (card.type === 'Character') { item.crop = powerCrop(canvas); item.soul = soulCount(canvas); const pw = readPowerCanvas(canvas, templates); item.power = pw.value; item.glyphs = pw.glyphs; }
           // An Event prints no power or soul. The sheet header of some Events looks like a Character's, so also treat a card as an Event
@@ -169,7 +177,8 @@ class Importer {
           card.counter = card.type !== 'Climax' && detectCounter(canvas);
           item.mainBlob = await toBlob(canvas);
           item.url = URL.createObjectURL(item.mainBlob); this.urls.push(item.url);
-        } else { card.color = null; this.warnings.push(`${card.number}: the PDF has no image for this card.`); }
+          }
+        } else { if (!card._table) card.color = null; this.warnings.push(`${card.number}: the PDF has no image for this card.`); }
         for (const a of ref.alts) item.altBlobs.push(await toBlob(await pg.images[a].pixels()));
         Object.assign(card, { power: card.type === 'Character' ? (item.power ?? null) : null, soul: card.type === 'Character' ? (item.soul ?? null) : null, counter: !!card.counter });
         items.push(item);
@@ -302,7 +311,7 @@ class Importer {
       const id = slug(form.code), images = new Map();
       const cards = this.items.map((it) => {
         const c = it.card, s = slug(c.number), out = { ...c };
-        delete out._img;
+        delete out._img; delete out._table;
         Object.assign(out, { series: form.series, set: form.code, rarity: (c.rarities && c.rarities[0]) || '', flavor: '', illustrator: '', image: null, altImages: [] });
         const ext = (b) => (b.type === 'image/webp' ? 'webp' : 'jpg');
         if (it.mainBlob) { const k = `${id}/${s}.${ext(it.mainBlob)}`; images.set(k, it.mainBlob); out.image = `idb:${k}`; }

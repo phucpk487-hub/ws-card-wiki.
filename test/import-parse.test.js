@@ -57,3 +57,19 @@ test('has:counter finds cards with the counter icon', () => {
   assert.deepEqual(searchCards(cards, { q: 'has:counter' }).items.map((c) => c.number), ['A']);
   assert.deepEqual(searchCards(cards, { q: 'type:event' }).items.map((c) => c.number), ['A']);
 });
+
+import { isTableSheet, parseTableSheet } from '../js/import/tableSheet.js';
+test('per-card table sheets (Level/Cost/Power, Card No./Rarity/Color/Souls/Trigger) are read as text', () => {
+  const pages = JSON.parse(readFileSync(new URL('./fixtures/table-sheet-pages.json', import.meta.url)));
+  assert.equal(isTableSheet(pages), true);
+  const { cards, setCode } = parseTableSheet(pages);
+  assert.equal(setCode, 'P5X/SZ10');
+  assert.deepEqual(cards.map((c) => [c.number, c.type, c.name]), [
+    ['P5X/SZ10-001', 'Character', 'Persona Thief'], ['P5X/SZ10-022', 'Event', 'Retake Your Desire'], ['P5X/SZ10-025', 'Climax', 'The Phantom Thief Alliance']]);
+  const [a, b, c] = cards;
+  assert.deepEqual([a.level, a.cost, a.power, a.soul, a.color, a.rarities, a.traits, a.triggers], [0, 0, 1000, 1, 'Yellow', ['RR'], ['Thief'], []]);
+  assert.equal(a.effect.length, 2); assert.match(a.effect[0], /^\[AUTO\] When a CX.*effects\."$/); assert.match(a.effect[1], /^\[ACT\] BRAINSTORM/);
+  assert.deepEqual([b.level, b.cost, b.power, b.soul], [1, 0, null, null]);
+  assert.deepEqual([c.level, c.cost, c.triggers, c.effect], [null, null, ['Choice'], []]);
+  assert.deepEqual(cards.map((x) => [x._img.main, x._img.alts.length]), [[0, 1], [2, 1], [4, 1]]);
+});
