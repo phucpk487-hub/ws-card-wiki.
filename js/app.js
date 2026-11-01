@@ -2,6 +2,7 @@ import { loadDb } from './lib/db.js';
 import { requestPersistence } from './lib/persist.js';
 import { parseHash } from './lib/router.js';
 import { initTheme } from './lib/theme.js';
+import { initAccent } from './lib/accent.js';
 import { skeletonPage, errorState, emptyState } from './lib/ui.js';
 import { searchHref } from './lib/ui.js';
 import { initUpdates } from './lib/updateUi.js';
@@ -77,6 +78,7 @@ async function route() {
 }
 
 initTheme(document.getElementById('theme-btn'));
+initAccent(document.getElementById('accent-btn'));
 document.getElementById('header-search').addEventListener('submit', (e) => {
   e.preventDefault();
   const q = new FormData(e.target).get('q').toString().trim();

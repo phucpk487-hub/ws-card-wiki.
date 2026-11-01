@@ -427,3 +427,21 @@ body[data-page="home"] .bar { justify-content: space-between; }
 .hand-card { display: flex; flex-direction: column; gap: 4px; padding: 6px; background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); color: var(--text); font: inherit; text-align: center; cursor: pointer; min-width: 0; }
 .hand-card[aria-pressed="true"] { border-color: var(--accent); transform: translateY(-4px); box-shadow: var(--shadow); }
 .hand-name { font-size: .75rem; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* accent colours (chosen with the palette button; ruby is the default above) */
+:root[data-accent="ocean"] { --accent: #1f5fa8; --accent-soft: #dde9f6; --accent-ink: #ffffff; }
+:root[data-theme="dark"][data-accent="ocean"] { --accent: #7db4f0; --accent-soft: #1d2a3a; --accent-ink: #111111; }
+:root[data-accent="forest"] { --accent: #2e6b3a; --accent-soft: #dcebdf; --accent-ink: #ffffff; }
+:root[data-theme="dark"][data-accent="forest"] { --accent: #7fcf8f; --accent-soft: #1d3023; --accent-ink: #111111; }
+:root[data-accent="violet"] { --accent: #6a3fa0; --accent-soft: #e8dff3; --accent-ink: #ffffff; }
+:root[data-theme="dark"][data-accent="violet"] { --accent: #c3a3f2; --accent-soft: #2c2340; --accent-ink: #111111; }
+:root[data-accent="amber"] { --accent: #8f5200; --accent-soft: #f4e4cc; --accent-ink: #ffffff; }
+:root[data-theme="dark"][data-accent="amber"] { --accent: #f2b94b; --accent-soft: #3a2e14; --accent-ink: #111111; }
+:root[data-accent="rose"] { --accent: #b02a5c; --accent-soft: #f6dfe8; --accent-ink: #ffffff; }
+:root[data-theme="dark"][data-accent="rose"] { --accent: #f08aab; --accent-soft: #3a2029; --accent-ink: #111111; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"])[data-accent] { --accent-ink: #111111; } :root:not([data-theme="light"])[data-accent="ruby"] { --accent-ink: #1a0e0b; } }
+.header-tools { display: flex; align-items: center; gap: 6px; position: relative; }
+.accent-pop { position: absolute; right: 0; top: calc(100% + 8px); z-index: 90; display: grid; grid-template-columns: repeat(3, 44px); gap: 10px; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+.accent-pop[hidden] { display: none; }
+.swatch { width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--surface); background: var(--sw); box-shadow: 0 0 0 1px var(--border); cursor: pointer; }
+.swatch[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--text); }

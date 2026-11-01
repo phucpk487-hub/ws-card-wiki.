@@ -12,6 +12,7 @@
   <script>
     // Apply theme before first paint to avoid a flash
     try { var t = localStorage.getItem('wsw-theme'); if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; document.documentElement.dataset.theme = t; } catch (e) {}
+    try { var a = localStorage.getItem('wsw-accent'); if (a) document.documentElement.dataset.accent = a; } catch (e) {}
   </script>
 </head>
 <body>
@@ -30,7 +31,10 @@
         <label class="sr-narrow" for="hq">Quick search</label>
         <input id="hq" name="q" type="search" placeholder="Search cards…">
       </form>
-      <button id="theme-btn" class="icon-btn" aria-label="Switch theme" data-tip="Switch theme">☾</button>
+      <div class="header-tools">
+        <button id="accent-btn" class="icon-btn" aria-label="Choose accent colour" data-tip="Accent colour"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3a9 9 0 100 18c1.2 0 1.8-.8 1.8-1.7 0-1-.9-1.4-.9-2.4 0-.9.7-1.6 1.6-1.6H17a4 4 0 004-4c0-4.4-4-8.3-9-8.3z"/><circle cx="7.5" cy="11" r="1" fill="currentColor"/><circle cx="10.5" cy="7.5" r="1" fill="currentColor"/><circle cx="15" cy="7.8" r="1" fill="currentColor"/></svg></button>
+        <button id="theme-btn" class="icon-btn" aria-label="Switch theme" data-tip="Switch theme">☾</button>
+      </div>
     </div>
   </header>
   <main id="main" tabindex="-1"></main>
