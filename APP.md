@@ -22,7 +22,8 @@ Before you publish to a store, change `appId` in `capacitor.config.json` (now `a
 ## Keeping your data
 * The app asks the device to keep its data (`navigator.storage.persist()`), but a device can still clear it when space is short.
 * **Decks** page: *Back up all decks* / *Restore backup*. **Import** page: *Back up sets* / *Restore sets*.
-* Saving a backup file inside the phone app uses the Filesystem and Share plugins installed by `app:setup`. Not yet tried on a real phone.
+* Saving a file (backup, print PDF) inside the phone app writes straight to the Downloads folder (then Documents), and only falls back to the share sheet if the phone refuses. Not yet tried on a real phone.
+* Updating: every build is signed with the same key (tools/signing/ws-wiki.jks, or your own via the ANDROID_KEYSTORE_B64 and ANDROID_KEYSTORE_PASSWORD repository secrets) and numbered by build, so a new APK installs over the old one and keeps your sets and decks. The first install after this change needs the old app removed once.
 
 ## Not yet done
 * A real app icon and splash screen (placeholder icon in `icons/icon.svg`; generate with `@capacitor/assets`).

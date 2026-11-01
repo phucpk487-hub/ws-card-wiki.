@@ -14,10 +14,16 @@ const toBase64 = (blob) => new Promise((resolve, reject) => {
 export async function saveFile(name, blob) {
   const P = window.Capacitor && window.Capacitor.Plugins;
   if (isNativeApp()) {
-    if (!P || !P.Filesystem || !P.Share) throw new Error('Saving files needs the Filesystem and Share plugins. See APP.md.');
-    const written = await P.Filesystem.writeFile({ path: name, data: await toBase64(blob), directory: 'CACHE' });
-    await P.Share.share({ title: name, url: written.uri, dialogTitle: 'Save or send this backup' });
-    return 'Choose where to keep the backup.';
+    if (!P || !P.Filesystem) throw new Error('Saving files needs the Filesystem plugin. See APP.md.');
+    const data = await toBase64(blob);
+    // Straight into the phone's Downloads folder (then Documents); only if both are refused, offer the share sheet.
+    for (const [directory, path, where] of [['EXTERNAL_STORAGE', `Download/${name}`, 'Downloads'], ['DOCUMENTS', name, 'Documents']]) {
+      try { await P.Filesystem.writeFile({ path, data, directory, recursive: true }); return `Saved ${name} to your ${where} folder.`; } catch { /* try the next place */ }
+    }
+    if (!P.Share) throw new Error('The phone would not let the app save a file here.');
+    const written = await P.Filesystem.writeFile({ path: name, data, directory: 'CACHE' });
+    await P.Share.share({ title: name, url: written.uri, dialogTitle: 'Save or send this file' });
+    return 'Choose where to keep the file.';
   }
   const url = URL.createObjectURL(blob);
   const a = Object.assign(document.createElement('a'), { href: url, download: name });

@@ -38,6 +38,26 @@ jobs:
           npx cap add android
           npx cap sync android
 
+      # Android only installs a new version over an old one when both are signed with the same key.
+      # A fresh build machine makes a fresh random key every time, so sign with a fixed one and number each build.
+      # Optional: store your own keystore as the repository secret ANDROID_KEYSTORE_B64 (and ANDROID_KEYSTORE_PASSWORD) to keep the key private.
+      - name: Sign every build with the same key
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$KS_B64" ]; then echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/ws.jks"; PASS="$KS_PASS"; else cp tools/signing/ws-wiki.jks "$RUNNER_TEMP/ws.jks"; PASS=wswiki-update; fi
+          python3 - <<PY
+          import os, re
+          p = 'android/app/build.gradle'; s = open(p).read()
+          sign = "signingConfigs { debug { storeFile file('%s'); storePassword '%s'; keyAlias 'wswiki'; keyPassword '%s' } }\n    " % (os.environ['RUNNER_TEMP'] + '/ws.jks', os.environ.get('PASS', '$PASS'), os.environ.get('PASS', '$PASS'))
+          s = s.replace('defaultConfig {', sign + 'defaultConfig {', 1)
+          s = re.sub(r'versionCode \d+', 'versionCode ${{ github.run_number }}', s, 1)
+          s = re.sub(r'versionName "[^"]*"', 'versionName "1.${{ github.run_number }}"', s, 1)
+          open(p, 'w').write(s)
+          PY
+          grep -n "versionCode\|signingConfigs" android/app/build.gradle
+
       - name: Build the APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
