@@ -30,7 +30,7 @@ jobs:
 
       - name: Stamp the version
         run: |
-          printf "export const VERSION = '1.${{ github.run_number }}';\nexport const COMMIT = '%s';\n" "${GITHUB_SHA::7}" > js/version.js
+          printf "export const VERSION = '1.${{ github.run_number }}';\nexport const BUILD = ${{ github.run_number }};\nexport const COMMIT = '%s';\n" "${GITHUB_SHA::7}" > js/version.js
           cat js/version.js
 
       - name: Package the web app
@@ -75,4 +75,4 @@ jobs:
           gh release delete latest --yes --cleanup-tag || true
           gh release create latest ws-card-wiki.apk \
             --title "Android app" \
-            --notes "Debug build of commit ${GITHUB_SHA::7}. Download the .apk on your phone and open it to install."
+            --notes "Build ${{ github.run_number }} · Debug build of commit ${GITHUB_SHA::7}. Download the .apk on your phone and open it to install."

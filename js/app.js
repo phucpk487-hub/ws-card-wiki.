@@ -4,9 +4,7 @@ import { parseHash } from './lib/router.js';
 import { initTheme } from './lib/theme.js';
 import { skeletonPage, errorState, emptyState } from './lib/ui.js';
 import { searchHref } from './lib/ui.js';
-import { VERSION, COMMIT } from './version.js';
-
-{ const el = document.getElementById('app-version'); if (el) el.textContent = VERSION === 'dev' ? 'Version: development (web)' : `Version ${VERSION}${COMMIT ? ` · ${COMMIT}` : ''}`; }
+import { initUpdates } from './lib/updateUi.js';
 
 const ROUTES = {
   '': () => import('./pages/home.js'),
@@ -105,3 +103,4 @@ if (NativeApp && NativeApp.addListener) {
 document.querySelector('.skip')?.addEventListener('click', (e) => { e.preventDefault(); main.focus(); });
 
 requestPersistence(); // ask the device to keep saved decks and imported sets
+initUpdates();
