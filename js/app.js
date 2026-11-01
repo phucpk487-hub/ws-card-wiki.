@@ -4,6 +4,9 @@ import { parseHash } from './lib/router.js';
 import { initTheme } from './lib/theme.js';
 import { skeletonPage, errorState, emptyState } from './lib/ui.js';
 import { searchHref } from './lib/ui.js';
+import { VERSION, COMMIT } from './version.js';
+
+{ const el = document.getElementById('app-version'); if (el) el.textContent = VERSION === 'dev' ? 'Version: development (web)' : `Version ${VERSION}${COMMIT ? ` · ${COMMIT}` : ''}`; }
 
 const ROUTES = {
   '': () => import('./pages/home.js'),
