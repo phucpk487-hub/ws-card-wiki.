@@ -3,6 +3,7 @@ import { listDecks, getDeck, saveDeck, deleteDeck, persistent } from '../lib/dec
 import { DECK_SIZE, MAX_COPIES, MAX_CLIMAX, emptyDeck, countOf, totalCards, canAdd, withCard, groupDeck, analyze, parseDeckText, exportDeckText } from '../lib/deck.js';
 import { decksToJson, decksFromJson, restoreDecks } from '../lib/backup.js';
 import { saveFile } from '../lib/files.js';
+import { buildPdf, cardJpeg, printList } from '../lib/printPdf.js';
 import { esc, displayName, cardArt, cardHref, colorDot, colorBadge, chip, emptyState, triggerBadge, COLOR_HEX } from '../lib/ui.js';
 
 export async function render(ctx) {
@@ -116,6 +117,7 @@ function editor({ db, path }, byNumber) {
         <div id="dlist"></div>
         <div id="dstats"></div>
         <div class="toolbar">
+          <button class="btn" id="b-print">Print PDF</button>
           <button class="btn" id="b-export">Export list</button>
           <button class="btn" id="b-import">Import list</button>
           <button class="btn" id="b-clear">Clear deck</button>
@@ -221,6 +223,29 @@ function editor({ db, path }, byNumber) {
         box.querySelector('#copy').onclick = async () => {
           try { await navigator.clipboard.writeText(ta.value); box.querySelector('#cmsg').textContent = 'Copied'; }
           catch { ta.select(); box.querySelector('#cmsg').textContent = 'Press Ctrl+C to copy'; }
+        };
+      });
+      $('#b-print').addEventListener('click', () => {
+        box.hidden = false;
+        box.innerHTML = `<p><strong>Print sheet</strong> · A4, 9 cards per page at real size (63 × 88 mm)</p><div class="toolbar"><label><input type="checkbox" id="pcopies" checked> Print every copy (untick for one of each card)</label></div><div class="toolbar"><label><input type="checkbox" id="pmarks" checked> Add cut marks</label></div><div class="toolbar"><button class="btn primary" id="pmake">Save PDF</button><button class="btn" id="close">Close</button><span class="muted small" id="pmsg" role="status"></span></div>`;
+        box.querySelector('#close').onclick = () => { box.hidden = true; };
+        box.querySelector('#pmake').onclick = async () => {
+          const msg = box.querySelector('#pmsg'), btn = box.querySelector('#pmake');
+          const list = printList(deck, byNumber, { copies: box.querySelector('#pcopies').checked });
+          if (!list.length) { msg.textContent = 'Add some cards first.'; return; }
+          btn.disabled = true;
+          try {
+            const cache = new Map(), images = [];
+            for (let i = 0; i < list.length; i++) {
+              msg.textContent = `Preparing card ${i + 1} of ${list.length}…`;
+              if (!cache.has(list[i])) cache.set(list[i], await cardJpeg(byNumber.get(list[i])));
+              images.push(cache.get(list[i]));
+              if (i % 4 === 3) await new Promise((r) => setTimeout(r));
+            }
+            const pdf = buildPdf(images, { cutMarks: box.querySelector('#pmarks').checked });
+            const name = `${deck.name.replace(/[^\w\- ]+/g, '').trim() || 'deck'}-print.pdf`;
+            msg.textContent = await saveFile(name, new Blob([pdf], { type: 'application/pdf' }));
+          } catch (e) { msg.textContent = `Could not make the PDF: ${e.message}`; } finally { btn.disabled = false; }
         };
       });
       $('#b-import').addEventListener('click', () => {
