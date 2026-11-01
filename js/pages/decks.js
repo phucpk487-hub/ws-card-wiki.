@@ -4,6 +4,7 @@ import { DECK_SIZE, MAX_COPIES, MAX_CLIMAX, emptyDeck, countOf, totalCards, canA
 import { decksToJson, decksFromJson, restoreDecks } from '../lib/backup.js';
 import { saveFile } from '../lib/files.js';
 import { buildPdf, cardJpeg, printList } from '../lib/printPdf.js';
+import { startGame, mulligan, draw, summarize, HAND } from '../lib/handTest.js';
 import { esc, displayName, cardArt, cardHref, colorDot, colorBadge, chip, emptyState, triggerBadge, COLOR_HEX } from '../lib/ui.js';
 
 export async function render(ctx) {
@@ -117,6 +118,7 @@ function editor({ db, path }, byNumber) {
         <div id="dlist"></div>
         <div id="dstats"></div>
         <div class="toolbar">
+          <button class="btn" id="b-hand">Test hand</button>
           <button class="btn" id="b-print">Print PDF</button>
           <button class="btn" id="b-export">Export list</button>
           <button class="btn" id="b-import">Import list</button>
@@ -124,6 +126,7 @@ function editor({ db, path }, byNumber) {
           <button class="btn" id="b-delete">Delete deck</button>
         </div>
         <div id="dtext" class="panel" hidden></div>
+        <div id="dhand" class="panel" hidden></div>
       </section>
     </div></div>`;
 
@@ -224,6 +227,33 @@ function editor({ db, path }, byNumber) {
           try { await navigator.clipboard.writeText(ta.value); box.querySelector('#cmsg').textContent = 'Copied'; }
           catch { ta.select(); box.querySelector('#cmsg').textContent = 'Press Ctrl+C to copy'; }
         };
+      });
+      /* ---- test hand ---- */
+      const handBox = $('#dhand');
+      let game = null, picks = new Set();
+      const drawHand = () => {
+        const left = game.deck.length, kinds = Object.entries(summarize(game.hand, byNumber)).filter(([, n]) => n);
+        handBox.innerHTML = `<div class="hand-head"><strong>Test hand</strong><span class="muted small">${left} card${left === 1 ? '' : 's'} left in the deck · ${game.waiting.length} in the waiting room</span></div>
+          <div class="hand-grid">${game.hand.map((n, i) => { const c = byNumber.get(n);
+            return `<button type="button" class="hand-card" data-pick="${i}" aria-pressed="${picks.has(i)}" aria-label="${esc(c ? c.name : n)}${picks.has(i) ? ', selected to swap' : ''}">${c ? cardArt(c, { lazy: false }) : '<div class="art"></div>'}<span class="hand-name">${esc(c ? displayName(c) : n)}</span></button>`; }).join('')}</div>
+          <p class="muted small">In hand: ${kinds.map(([k, n]) => `${esc(k)} ${n}`).join(' · ') || 'nothing'}</p>
+          <p class="muted small" id="hand-help">${game.mulliganed ? 'You have used your mulligan.' : 'Tap cards you want to swap, then press Mulligan. You can do this once.'}</p>
+          <div class="toolbar"><button class="btn primary" id="h-mull" ${game.mulliganed || !picks.size ? 'disabled' : ''}>Mulligan${picks.size ? ` ${picks.size}` : ''}</button>
+          <button class="btn" id="h-draw" ${left ? '' : 'disabled'}>Draw a card</button><button class="btn" id="h-new">New hand</button><button class="btn" id="h-close">Close</button></div>`;
+      };
+      const newGame = () => {
+        const list = printList(deck, byNumber);
+        if (list.length < HAND) { say(`Add at least ${HAND} cards to test a hand.`); return; }
+        game = startGame(list); picks = new Set(); handBox.hidden = false; drawHand(); handBox.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      };
+      $('#b-hand').addEventListener('click', newGame);
+      handBox.addEventListener('click', (e) => {
+        const b = e.target.closest('button'); if (!b || !game) return;
+        if (b.dataset.pick !== undefined && !game.mulliganed) { const i = +b.dataset.pick; picks.has(i) ? picks.delete(i) : picks.add(i); drawHand(); }
+        else if (b.id === 'h-mull') { game = mulligan(game, picks); picks = new Set(); drawHand(); }
+        else if (b.id === 'h-draw') { game = draw(game); drawHand(); }
+        else if (b.id === 'h-new') newGame();
+        else if (b.id === 'h-close') { handBox.hidden = true; game = null; }
       });
       $('#b-print').addEventListener('click', () => {
         box.hidden = false;
