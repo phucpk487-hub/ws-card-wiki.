@@ -1,5 +1,6 @@
 // What changed, newest first. `from` is the build number that first had the change (the number after "1." in the version).
 export const CHANGELOG = [
+  { from: 46, notes: ['Fixed: "Check for updates" always said it could not check. The new-version notice should work now.'] },
   { from: 45, notes: ['Pick an accent colour: Ruby, Ocean, Forest, Violet, Amber or Rose, with the palette button at the top. It works in light and dark mode.'] },
   { from: 44, notes: ['"Check for updates" at the bottom of the page checks right away; the app also checks every few minutes while it is open.'] },
   { from: 43, notes: ['Decks have a Test hand button: draw 5 cards from your shuffled deck, swap cards once (mulligan), draw more, or start a new hand.'] },

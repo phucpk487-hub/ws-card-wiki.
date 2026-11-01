@@ -45,7 +45,7 @@ export function initUpdates() {
   if (btn) btn.onclick = async () => {
     const say = foot.querySelector('[data-checkmsg]'); say.textContent = ' Checking…';
     const u = await look();
-    say.textContent = u.state === 'new' ? ` Version 1.${u.build} is ready, see the top of the page.` : u.state === 'current' ? ' You have the latest version.' : " Couldn't check (are you online?).";
+    say.textContent = u.state === 'new' ? ` Version 1.${u.build} is ready, see the top of the page.` : u.state === 'current' ? ' You have the latest version.' : ` Couldn't check (${u.why || 'are you online?'}).`;
     if (u.state === 'new') window.scrollTo(0, 0);
   };
 }

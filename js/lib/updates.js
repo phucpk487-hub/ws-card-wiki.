@@ -11,15 +11,16 @@ export function whatsNew(log, seen, current) {
   return seen ? have.filter((e) => e.from > seen) : have.slice(0, 1);
 }
 
-/** Looks for a newer build. Returns { state: 'new', build, url } | { state: 'current', build } | { state: 'failed' }. Never throws (offline is normal). */
+/** Looks for a newer build. Returns { state: 'new', build, url } | { state: 'current', build } | { state: 'failed', why }. Never throws (offline is normal).
+ *  The request is kept "simple" (no custom headers, no cache option): those make the browser send a CORS preflight, which GitHub's API refuses. */
 export async function checkForUpdate(current, fetchFn = fetch) {
   try {
-    const r = await fetchFn(`https://api.github.com/repos/${REPO}/releases/latest`, { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' });
-    if (!r.ok) return { state: 'failed' };
+    const r = await fetchFn(`https://api.github.com/repos/${REPO}/releases/latest?t=${Date.now()}`);
+    if (!r.ok) return { state: 'failed', why: `GitHub answered ${r.status}` };
     const d = await r.json(), build = buildFromNotes(d.body);
-    if (!build) return { state: 'failed' };
+    if (!build) return { state: 'failed', why: 'the release has no build number' };
     if (build <= current) return { state: 'current', build };
     const apk = (d.assets || []).find((a) => /\.apk$/i.test(a.name));
     return { state: 'new', build, url: apk ? apk.browser_download_url : RELEASES_PAGE };
-  } catch { return { state: 'failed' }; }
+  } catch (e) { return { state: 'failed', why: String((e && e.message) || e).slice(0, 60) }; }
 }

@@ -12,6 +12,8 @@ test('what is new: everything since the last seen build, only the newest on a fi
 });
 test('update check: newer build found, same build and failures reported', async () => {
   const ok = (body) => async () => ({ ok: true, json: async () => ({ body, assets: [{ name: 'ws-card-wiki.apk', browser_download_url: 'https://x/a.apk' }] }) });
+  let seen; const spy = async (...a) => { seen = a; return ok('Build 41 · x')(); };
+  await checkForUpdate(40, spy); assert.equal(seen.length, 1, 'no options: nothing that triggers a CORS preflight');
   assert.deepEqual(await checkForUpdate(40, ok('Build 41 · x')), { state: 'new', build: 41, url: 'https://x/a.apk' });
   assert.deepEqual(await checkForUpdate(41, ok('Build 41 · x')), { state: 'current', build: 41 });
   assert.equal((await checkForUpdate(41, async () => { throw new Error('offline'); })).state, 'failed');
