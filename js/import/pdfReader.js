@@ -31,7 +31,7 @@ function bboxOfUnitSquare(m) {
 function dataToCanvas(obj) {
   const canvas = document.createElement('canvas');
   canvas.width = obj.width; canvas.height = obj.height;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (obj.bitmap) { ctx.drawImage(obj.bitmap, 0, 0); return canvas; }
   const { data, width: w, height: h } = obj;
   const out = ctx.createImageData(w, h), o = out.data;
