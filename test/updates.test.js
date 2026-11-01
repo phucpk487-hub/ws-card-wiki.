@@ -10,10 +10,11 @@ test('what is new: everything since the last seen build, only the newest on a fi
   assert.deepEqual(whatsNew(log, 41, 41), []);
   assert.deepEqual(whatsNew(log, 0, 40).map((e) => e.from), [40]);
 });
-test('update check: newer build found, same build and failures ignored', async () => {
+test('update check: newer build found, same build and failures reported', async () => {
   const ok = (body) => async () => ({ ok: true, json: async () => ({ body, assets: [{ name: 'ws-card-wiki.apk', browser_download_url: 'https://x/a.apk' }] }) });
-  assert.deepEqual(await checkForUpdate(40, ok('Build 41 · x')), { build: 41, url: 'https://x/a.apk' });
-  assert.equal(await checkForUpdate(41, ok('Build 41 · x')), null);
-  assert.equal(await checkForUpdate(41, async () => { throw new Error('offline'); }), null);
-  assert.equal(await checkForUpdate(41, async () => ({ ok: false })), null);
+  assert.deepEqual(await checkForUpdate(40, ok('Build 41 · x')), { state: 'new', build: 41, url: 'https://x/a.apk' });
+  assert.deepEqual(await checkForUpdate(41, ok('Build 41 · x')), { state: 'current', build: 41 });
+  assert.equal((await checkForUpdate(41, async () => { throw new Error('offline'); })).state, 'failed');
+  assert.equal((await checkForUpdate(41, async () => ({ ok: false }))).state, 'failed');
+  assert.equal((await checkForUpdate(41, ok('no number'))).state, 'failed');
 });

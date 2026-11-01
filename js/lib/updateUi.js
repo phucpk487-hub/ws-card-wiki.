@@ -24,20 +24,28 @@ export function initUpdates() {
   const foot = document.getElementById('app-version');
   if (BUILD === 0) { if (foot) foot.textContent = 'Version: development (web)'; return; }
   if (foot) {
-    foot.innerHTML = `Version ${esc(VERSION)}${COMMIT ? ` · ${esc(COMMIT)}` : ''} · <button class="linklike" type="button" data-notes>What's new</button>`;
+    foot.innerHTML = `Version ${esc(VERSION)}${COMMIT ? ` · ${esc(COMMIT)}` : ''} · <button class="linklike" type="button" data-notes>What's new</button> · <button class="linklike" type="button" data-check>Check for updates</button><span data-checkmsg></span>`;
     foot.querySelector('[data-notes]').onclick = () => showNotes(CHANGELOG.filter((e) => e.from <= BUILD).slice(0, 4), 'Recent changes');
   }
   const fresh = whatsNew(CHANGELOG, get(), BUILD);
   if (fresh.length) showNotes(fresh, `What's new in ${VERSION}`);
   set(BUILD);
 
-  const look = async () => {
-    const u = await checkForUpdate(BUILD);
-    if (!u || document.querySelector('#update-bar [data-update]')) return;
+  const card = (u) => {
+    if (document.querySelector('#update-bar [data-update]')) return;
     const el = bar();
     el.insertAdjacentHTML('afterbegin', `<div class="update-card" data-update><strong>A new version is ready (1.${u.build})</strong><p class="muted small">Download it and open the file to install. Your sets and decks stay.</p><a class="btn primary" href="${esc(u.url)}" target="_blank" rel="noopener">Download</a> <button class="btn" type="button" data-later>Later</button></div>`);
     el.querySelector('[data-later]').onclick = (e) => e.target.closest('[data-update]').remove();
   };
+  const look = async () => { const u = await checkForUpdate(BUILD); if (u.state === 'new') card(u); return u; };
   look();
+  setInterval(() => { if (!document.hidden) look(); }, 5 * 60 * 1000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) look(); });
+  const btn = foot && foot.querySelector('[data-check]');
+  if (btn) btn.onclick = async () => {
+    const say = foot.querySelector('[data-checkmsg]'); say.textContent = ' Checking…';
+    const u = await look();
+    say.textContent = u.state === 'new' ? ` Version 1.${u.build} is ready, see the top of the page.` : u.state === 'current' ? ' You have the latest version.' : " Couldn't check (are you online?).";
+    if (u.state === 'new') window.scrollTo(0, 0);
+  };
 }
