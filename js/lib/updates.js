@@ -11,11 +11,12 @@ export function whatsNew(log, seen, current) {
   return seen ? have.filter((e) => e.from > seen) : have.slice(0, 1);
 }
 
-/** Looks for a newer build. Returns { state: 'new', build, url } | { state: 'current', build } | { state: 'failed', why }. Never throws (offline is normal).
+/** Looks for a newer build. Returns { state: 'new', build, url } | { state: 'current', build } | { state: 'private' } | { state: 'failed', why }. Never throws (offline is normal).
  *  The request is kept "simple" (no custom headers, no cache option): those make the browser send a CORS preflight, which GitHub's API refuses. */
 export async function checkForUpdate(current, fetchFn = fetch) {
   try {
     const r = await fetchFn(`https://api.github.com/repos/${REPO}/releases/latest?t=${Date.now()}`);
+    if (r.status === 404) return { state: 'private' };   // a private repository looks like "not found" to the app, which has no login
     if (!r.ok) return { state: 'failed', why: `GitHub answered ${r.status}` };
     const d = await r.json(), build = buildFromNotes(d.body);
     if (!build) return { state: 'failed', why: 'the release has no build number' };

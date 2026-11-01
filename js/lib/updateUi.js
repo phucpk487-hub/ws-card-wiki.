@@ -45,6 +45,7 @@ export function initUpdates() {
   if (btn) btn.onclick = async () => {
     const say = foot.querySelector('[data-checkmsg]'); say.textContent = ' Checking…';
     const u = await look();
+    if (u.state === 'private') { say.innerHTML = ` The app can't look up new versions by itself (the download page needs your GitHub login). <a href="${RELEASES_PAGE}" target="_blank" rel="noopener">Open the downloads page</a> and compare its build number with 1.${BUILD}.`; return; }
     say.textContent = u.state === 'new' ? ` Version 1.${u.build} is ready, see the top of the page.` : u.state === 'current' ? ' You have the latest version.' : ` Couldn't check (${u.why || 'are you online?'}).`;
     if (u.state === 'new') window.scrollTo(0, 0);
   };

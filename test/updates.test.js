@@ -19,4 +19,5 @@ test('update check: newer build found, same build and failures reported', async 
   assert.equal((await checkForUpdate(41, async () => { throw new Error('offline'); })).state, 'failed');
   assert.equal((await checkForUpdate(41, async () => ({ ok: false }))).state, 'failed');
   assert.equal((await checkForUpdate(41, ok('no number'))).state, 'failed');
+  assert.equal((await checkForUpdate(41, async () => ({ ok: false, status: 404 }))).state, 'private');
 });
