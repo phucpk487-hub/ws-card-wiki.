@@ -44,3 +44,10 @@ test('errors: a sign-in page and a wrong tab are explained', () => {
   assert.throws(() => parseSheetCsv('<!DOCTYPE html><html>'), /Anyone with the link/);
   assert.throws(() => parseSheetCsv('a,b\n1,2'), /does not look like a card sheet/);
 });
+
+test('picture import: the PDF address needs a tab number', async () => {
+  const { pdfUrl } = await import('../js/import/sheetLink.js');
+  assert.equal(pdfUrl({ id: ID, gid: null }, 'Persona 5X'), null);
+  assert.match(pdfUrl({ id: ID, gid: null }, '1829'), /export\?format=pdf&gid=1829&/);
+  assert.match(pdfUrl({ id: ID, gid: '77' }, ''), /gid=77&/);
+});

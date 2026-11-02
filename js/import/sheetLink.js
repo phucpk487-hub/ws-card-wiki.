@@ -23,6 +23,12 @@ export function csvUrls({ id, gid }, tab = '') {
   return urls;
 }
 
+/** The tab as a PDF (pictures included), for the same reader that handles PDF files. Needs the tab number. */
+export function pdfUrl({ id, gid }, tab = '') {
+  const t = String(tab || '').trim(), g = /^\d+$/.test(t) ? t : gid;
+  return g ? `https://docs.google.com/spreadsheets/d/${id}/export?format=pdf&gid=${g}&portrait=false&fitw=true&gridlines=false&printtitle=false&sheetnames=false&pagenum=UNDEFINED&attachment=false` : null;
+}
+
 /** True when Google answered with a web page (usually the sign-in page) instead of data. */
 export const looksLikeHtml = (text) => /^\s*<(!doctype|html|head|body)/i.test(text || '');
 

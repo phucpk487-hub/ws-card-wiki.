@@ -1,7 +1,7 @@
 import { openPdf } from '../import/pdfReader.js';
 import { parseSheet } from '../import/parse.js';
 import { isTableSheet, parseTableSheet } from '../import/tableSheet.js';
-import { parseSheetLink, csvUrls, parseSheetCsv, looksLikeHtml } from '../import/sheetLink.js';
+import { parseSheetLink, csvUrls, pdfUrl, parseSheetCsv, looksLikeHtml } from '../import/sheetLink.js';
 import { isNativeApp } from '../lib/files.js';
 import { detectColor, powerCrop, soulCount, hasSoulTrigger, detectTrigger, detectClimaxTriggers, detectCounter, readPowerCanvas, toBlob } from '../import/images.js';
 import { powerTemplates, learnPower, learnedDigitsText } from '../import/powerLearn.js';
@@ -68,6 +68,7 @@ class Importer {
           <label>Series<input id="s-series" name="series" required placeholder="e.g. Persona 5: The Phantom X"></label>
           <label>Set type<select id="s-type" name="type">${SET_TYPES.map((t) => `<option>${t}</option>`).join('')}</select></label>
         </div>
+        <label class="check"><input type="checkbox" id="s-pics" name="pics"> Also get the pictures <span class="muted small">(downloads the tab as a PDF, which is much bigger and slower; needs the tab number)</span></label>
         <button class="btn primary" type="submit">Read sheet</button>
       </form>
       <h2>Imported sets</h2>
@@ -134,7 +135,7 @@ class Importer {
       const fd = new FormData(e.target);
       this.form = { name: fd.get('name').trim(), series: fd.get('series').trim(), type: fd.get('type'), date: '', code: '' };
       this.error = '';
-      this.readSheet(fd.get('link'), fd.get('tab'));
+      this.readSheet(fd.get('link'), fd.get('tab'), fd.get('pics') === 'on');
     });
     this.el.addEventListener('click', async (e) => {
       const r = e.target.closest('[data-restore]');
@@ -210,7 +211,33 @@ class Importer {
     throw new Error(`Could not download the sheet (${last}). Check your connection, then try again.`);
   }
 
-  async readSheet(link, tab) {
+  /** Download the tab as a PDF and hand it to the normal PDF reader, which also finds the pictures. */
+  async readSheetPdf(link, tab) {
+    const ref = parseSheetLink(link), url = ref && pdfUrl(ref, tab);
+    if (!ref) throw new Error('That does not look like a Google Sheets link.');
+    if (!url) throw new Error('Pictures need the tab number. Open the tab in a browser and copy the digits after “#gid=” from the address, then put them in the Tab box (or paste the whole address).');
+    this.file = { name: 'Google Sheets' }; this.progress('Downloading the tab as a PDF (this can take a while)…', 10);
+    const P = window.Capacitor && window.Capacitor.Plugins;
+    let blob;
+    if (isNativeApp() && P && P.Filesystem && P.Filesystem.downloadFile) {
+      const r = await P.Filesystem.downloadFile({ url, path: 'sheet-download.pdf', directory: 'CACHE' });
+      blob = await (await fetch(window.Capacitor.convertFileSrc(r.path))).blob();
+    } else {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`Google would not give the PDF (status ${r.status}). Check that the sheet is shared as “Anyone with the link”.`);
+      blob = await r.blob();
+    }
+    const head = String.fromCharCode(...new Uint8Array(await blob.slice(0, 5).arrayBuffer()));
+    if (head !== '%PDF-') throw new Error('Google did not send a PDF. Set the sheet to “Anyone with the link can view” and check the tab number.');
+    const f = new File([blob], 'sheet.pdf', { type: 'application/pdf' });
+    this.file = f; await this.read(f);
+  }
+
+  async readSheet(link, tab, pictures = false) {
+    if (pictures) {
+      try { await this.readSheetPdf(link, tab); } catch (err) { console.error(err); this.error = err.message || 'Could not get the PDF.'; this.start(); }
+      return;
+    }
     try {
       this.file = { name: 'Google Sheets' }; this.sheetNote = '';
       this.progress('Downloading the sheet…', 15);
