@@ -1,5 +1,6 @@
 // What changed, newest first. `from` is the build number that first had the change (the number after "1." in the version).
 export const CHANGELOG = [
+  { from: 49, notes: ['Import page: read a card sheet straight from a Google Sheets link (shared as Anyone with the link). Card data only; sheets have no pictures.'] },
   { from: 46, notes: ['Check for updates: when the app cannot look up new versions itself, it now says so and links to the downloads page.'] },
   { from: 45, notes: ['Pick an accent colour: Ruby, Ocean, Forest, Violet, Amber or Rose, with the palette button at the top. It works in light and dark mode.'] },
   { from: 44, notes: ['"Check for updates" at the bottom of the page checks right away; the app also checks every few minutes while it is open.'] },

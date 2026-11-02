@@ -1,6 +1,8 @@
 import { openPdf } from '../import/pdfReader.js';
 import { parseSheet } from '../import/parse.js';
 import { isTableSheet, parseTableSheet } from '../import/tableSheet.js';
+import { parseSheetLink, csvUrls, parseSheetCsv, looksLikeHtml } from '../import/sheetLink.js';
+import { isNativeApp } from '../lib/files.js';
 import { detectColor, powerCrop, soulCount, hasSoulTrigger, detectTrigger, detectClimaxTriggers, detectCounter, readPowerCanvas, toBlob } from '../import/images.js';
 import { powerTemplates, learnPower, learnedDigitsText } from '../import/powerLearn.js';
 import { savePack, deletePack, listPacks, listKnownCards } from '../import/store.js';
@@ -55,6 +57,18 @@ class Importer {
           <label>Release date <span class="muted">(optional)</span><input id="f-date" name="date" type="date" value="${esc(this.form.date)}"></label>
         </div>
         <button class="btn primary" type="submit">Read PDF</button>
+      </form>
+      <form id="sheet-form" class="panel imp-form">
+        <h2 style="margin-top:0">Or read a Google Sheets link</h2>
+        <p class="muted small">For a sheet with one table per card (Level, Cost, Power, Trait, Card No., Rarity, Color, Souls, Trigger, Effect). The sheet must be shared as “Anyone with the link can view”. The card data is read; pictures are not in a sheet, so these cards come without pictures.</p>
+        <div class="fields">
+          <label>Sheet link<input id="s-link" name="link" required inputmode="url" placeholder="https://docs.google.com/spreadsheets/d/…"></label>
+          <label>Tab <span class="muted">(its number from “#gid=…”, or its name)</span><input id="s-tab" name="tab" placeholder="e.g. 1829 or Persona 5X"></label>
+          <label>Set name<input id="s-name" name="name" required placeholder="e.g. Persona 5X (Chinese exclusive)"></label>
+          <label>Series<input id="s-series" name="series" required placeholder="e.g. Persona 5: The Phantom X"></label>
+          <label>Set type<select id="s-type" name="type">${SET_TYPES.map((t) => `<option>${t}</option>`).join('')}</select></label>
+        </div>
+        <button class="btn primary" type="submit">Read sheet</button>
       </form>
       <h2>Imported sets</h2>
       <div id="imp-list">${saved.length ? `<ul class="list">${saved.map((p) => `<li class="imp-row"><div><a href="${setHref(p.set.code)}"><strong>${esc(p.set.name)}</strong></a>
@@ -115,6 +129,13 @@ class Importer {
       this.error = '';
       this.read(file.files[0] || this.file);
     });
+    this.el.querySelector('#sheet-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      this.form = { name: fd.get('name').trim(), series: fd.get('series').trim(), type: fd.get('type'), date: '', code: '' };
+      this.error = '';
+      this.readSheet(fd.get('link'), fd.get('tab'));
+    });
     this.el.addEventListener('click', async (e) => {
       const r = e.target.closest('[data-restore]');
       if (r) { restoreHiddenSet(r.dataset.restore); this.start(); return; }
@@ -157,15 +178,8 @@ class Importer {
         await new Promise((r) => setTimeout(r)); // let the progress bar paint
       }
       if (!items.length) throw new Error('No card rows were found. This importer expects a sheet with card numbers like “ABC/S01-001” in the left column, or one table per card. Scanned (image-only) PDFs are not supported.');
-      const seen = new Set();
-      for (const { card } of items) { if (seen.has(card.number)) this.warnings.push(`duplicate card number ${card.number}`); seen.add(card.number); }
-      const filled = fillTraits(items, await listKnownCards());
-      for (const w of filled) { const num = w.split(':')[0]; this.warnings = this.warnings.filter((x) => !x.startsWith(`${num}: no trait list`)); }
-      this.warnings.push(...filled);
-      this.form.code = items[0].card.number.replace(/-\d+[A-Za-z]*$/, '');
       pdf.destroy();
-      this.items = items;
-      this.review();
+      await this.finish(items);
     } catch (err) {
       console.error(err);
       const friendly = { InvalidPDFException: this.invalidPdfMessage(), PasswordException: 'That PDF is password protected. Remove the password and try again.', MissingPDFException: 'That PDF could not be found.' };
@@ -175,9 +189,64 @@ class Importer {
   }
 
   /** Read one card's pictures: colour, power, soul, triggers, counter; returns the review item. */
+  /** Download a sheet tab as CSV. In the phone app the request goes out natively (no browser cross-origin limits). */
+  async fetchSheet(link, tab) {
+    const ref = parseSheetLink(link);
+    if (!ref) throw new Error('That does not look like a Google Sheets link. It should contain “docs.google.com/spreadsheets/d/…”.');
+    const http = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp;
+    const get = async (url) => {
+      if (isNativeApp() && http && http.get) { const r = await http.get({ url, responseType: 'text' }); return { status: r.status, text: String(r.data ?? '') }; }
+      const r = await fetch(url); return { status: r.status, text: await r.text() };
+    };
+    let last = '';
+    for (const { url, exact } of csvUrls(ref, tab)) {
+      try {
+        const r = await get(url);
+        if (r.status === 200 && r.text && !looksLikeHtml(r.text)) { if (!exact) this.sheetNote = 'Read by tab name: Google can leave out some cells that way. If anything is missing, use the tab number from the address (#gid=…) instead.'; return r.text; }
+        last = r.status === 200 ? 'private' : `status ${r.status}`;
+      } catch (err) { last = `network: ${err.message}`; }
+    }
+    if (last === 'private' || /status (401|403|404)/.test(last)) throw new Error('Google would not give the sheet to the app. Open the sheet, tap Share, set General access to “Anyone with the link” (Viewer), and try again. Also check the tab number or name.');
+    throw new Error(`Could not download the sheet (${last}). Check your connection, then try again.`);
+  }
+
+  async readSheet(link, tab) {
+    try {
+      this.file = { name: 'Google Sheets' }; this.sheetNote = '';
+      this.progress('Downloading the sheet…', 15);
+      const text = await this.fetchSheet(link, tab);
+      this.progress('Reading the cards…', 60);
+      const parsed = parseSheetCsv(text);
+      this.warnings = [...parsed.warnings]; if (this.sheetNote) this.warnings.push(this.sheetNote);
+      const templates = powerTemplates(), items = [];
+      for (const card of parsed.cards) items.push(await this.processCard(card, { images: [] }, templates));
+      if (!items.length) throw new Error('No cards were found in that tab.');
+      this.warnings = this.warnings.filter((w) => !/has no image for this card/.test(w));
+      this.warnings.push('Cards from a sheet have no pictures.');
+      await this.finish(items);
+    } catch (err) {
+      console.error(err);
+      this.error = err.message || 'Could not read that sheet.';
+      this.start();
+    }
+  }
+
+  /** Common end of every import: duplicates, borrowed traits, set code, then the review screen. */
+  async finish(items) {
+    const seen = new Set();
+    for (const { card } of items) { if (seen.has(card.number)) this.warnings.push(`duplicate card number ${card.number}`); seen.add(card.number); }
+    const filled = fillTraits(items, await listKnownCards());
+    for (const w of filled) { const num = w.split(':')[0]; this.warnings = this.warnings.filter((x) => !x.startsWith(`${num}: no trait list`)); }
+    this.warnings.push(...filled);
+    this.form.code = items[0].card.number.replace(/-\d+[A-Za-z]*$/, '');
+    this.items = items;
+    this.review();
+  }
+
   async processCard(card, model, templates) {
         const ref = card._img, pg = model;
         const item = { card, mainBlob: null, altBlobs: [], crop: null, url: null };
+        if (card._table) { item.power = card.power; item.soul = card.soul; item.glyphs = []; }   // text sheets carry the values even when a card has no picture
         let mainP = null;   // encoding runs off the main thread, so it overlaps with the analysis below and with the alternate pictures
         if (ref.main !== null) {
           const canvas = await pg.images[ref.main].pixels();
