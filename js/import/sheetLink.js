@@ -60,12 +60,16 @@ export function gridToPage(rows) {
   return { index: 0, width: Math.max(1, ...rows.map((r) => r.length)) * 100, height: rows.length * 100 + 100, words, images: [] };
 }
 
+/** A page model (cells, maybe with pictures) to { cards, setCode, warnings }; throws a readable error when it is not a card tab. */
+export function parseCardPage(page) {
+  if (!isTableSheet([page])) throw new Error('This tab does not look like a card sheet. It needs the labels Level, Cost, Power, Trait, Card No., Rarity, Color, Souls, Trigger and Effect. Check the tab name or number.');
+  return parseTableSheet([page]);
+}
+
 /** CSV text to { cards, setCode, warnings }; throws a readable error when the text is not a card tab. */
 export function parseSheetCsv(text) {
   if (looksLikeHtml(text)) throw new Error('Google sent back a web page instead of the sheet. Set the sheet to “Anyone with the link can view” and try again.');
-  const page = gridToPage(parseCsv(text));
-  if (!isTableSheet([page])) throw new Error('This tab does not look like a card sheet. It needs the labels Level, Cost, Power, Trait, Card No., Rarity, Color, Souls, Trigger and Effect. Check the tab name or number.');
-  const out = parseTableSheet([page]);
+  const out = parseCardPage(gridToPage(parseCsv(text)));
   for (const c of out.cards) { c._img = { page: 0, main: null, alts: [] }; }
   out.warnings = out.warnings.filter((w) => !/picture|image/i.test(w));
   return out;

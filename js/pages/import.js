@@ -1,7 +1,8 @@
 import { openPdf } from '../import/pdfReader.js';
 import { parseSheet } from '../import/parse.js';
 import { isTableSheet, parseTableSheet } from '../import/tableSheet.js';
-import { parseSheetLink, csvUrls, pdfUrl, parseSheetCsv, looksLikeHtml } from '../import/sheetLink.js';
+import { parseSheetLink, csvUrls, pdfUrl, parseSheetCsv, parseCardPage, gridToPage, looksLikeHtml } from '../import/sheetLink.js';
+import { openZip, sheetList, sheetRows, sheetPictures, pageFromSheet } from '../import/xlsx.js';
 import { isNativeApp } from '../lib/files.js';
 import { detectColor, powerCrop, soulCount, hasSoulTrigger, detectTrigger, detectClimaxTriggers, detectCounter, readPowerCanvas, toBlob } from '../import/images.js';
 import { powerTemplates, learnPower, learnedDigitsText } from '../import/powerLearn.js';
@@ -71,6 +72,19 @@ class Importer {
         <label class="check"><input type="checkbox" id="s-pics" name="pics"> Also get the pictures <span class="muted small">(downloads the tab as a PDF, which is much bigger and slower; needs the tab number)</span></label>
         <button class="btn primary" type="submit">Read sheet</button>
       </form>
+      <form id="xlsx-form" class="panel imp-form">
+        <h2 style="margin-top:0">Or read an Excel file (.xlsx)</h2>
+        <p class="muted small">The Excel version of a card sheet (one table per card, with the pictures in the sheet). Card data and pictures are both read. Big files are read piece by piece, so even several hundred MB is fine.</p>
+        <label class="drop" for="xl-file"><input id="xl-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required><strong id="xl-label">Choose an Excel file</strong></label>
+        <div class="fields">
+          <label>Tab<select id="xl-tab" name="tab" disabled><option>Choose the file first</option></select></label>
+          <label>Set name<input id="xl-name" name="name" required placeholder="e.g. Persona 5X (Chinese exclusive)"></label>
+          <label>Series<input id="xl-series" name="series" required placeholder="e.g. Persona 5: The Phantom X"></label>
+          <label>Set type<select name="type">${SET_TYPES.map((t) => `<option>${t}</option>`).join('')}</select></label>
+        </div>
+        <button class="btn primary" type="submit">Read Excel file</button>
+        <p id="xl-msg" class="muted small" role="status"></p>
+      </form>
       <h2>Imported sets</h2>
       <div id="imp-list">${saved.length ? `<ul class="list">${saved.map((p) => `<li class="imp-row"><div><a href="${setHref(p.set.code)}"><strong>${esc(p.set.name)}</strong></a>
         <div class="muted small">${esc(p.set.code)} · ${p.count} cards · saved ${formatDate(new Date(p.savedAt).toISOString().slice(0, 10))}</div></div>
@@ -136,6 +150,25 @@ class Importer {
       this.form = { name: fd.get('name').trim(), series: fd.get('series').trim(), type: fd.get('type'), date: '', code: '' };
       this.error = ''; this.errorLink = '';
       this.readSheet(fd.get('link'), fd.get('tab'), fd.get('pics') === 'on');
+    });
+    const xl = this.el.querySelector('#xl-file'), xlMsg = this.el.querySelector('#xl-msg'), xlTab = this.el.querySelector('#xl-tab');
+    xl.addEventListener('change', async () => {
+      const f = xl.files[0]; if (!f) return;
+      this.el.querySelector('#xl-label').textContent = f.name; xlMsg.textContent = 'Looking at the tabs…';
+      try {
+        const tabs = await sheetList(await openZip(f));
+        xlTab.innerHTML = tabs.map((t, i) => `<option value="${i}">${esc(t.name)}</option>`).join(''); xlTab.disabled = false;
+        const nm = this.el.querySelector('#xl-name'); if (!nm.value) nm.value = tabs[0] ? tabs[0].name : '';
+        xlTab.onchange = () => { nm.value = tabs[+xlTab.value].name; };
+        xlMsg.textContent = `${tabs.length} tab${tabs.length === 1 ? '' : 's'} found. Choose the one with the cards.`;
+      } catch (err) { xlMsg.textContent = err.message; xlTab.disabled = true; }
+    });
+    this.el.querySelector('#xlsx-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      this.form = { name: fd.get('name').trim(), series: fd.get('series').trim(), type: fd.get('type'), date: '', code: '' };
+      this.error = ''; this.errorLink = '';
+      this.readXlsx(xl.files[0], +fd.get('tab') || 0);
     });
     this.el.addEventListener('click', async (e) => {
       const r = e.target.closest('[data-restore]');
@@ -258,6 +291,32 @@ class Importer {
     } catch (err) {
       console.error(err);
       this.error = err.message || 'Could not read that sheet.';
+      this.start();
+    }
+  }
+
+  /** An Excel workbook: the tab's cells become the card tables, and the pictures over the cells go to the cards beside them. */
+  async readXlsx(file, tabIndex) {
+    try {
+      if (!file) throw new Error('Choose an Excel file first.');
+      this.file = file; this.progress('Opening the workbook…', 3);
+      const zip = await openZip(file), tab = (await sheetList(zip))[tabIndex];
+      if (!tab) throw new Error('That tab was not found.');
+      this.progress(`Reading the cells of “${tab.name}”…`, 8);
+      const page = pageFromSheet(zip, await sheetRows(zip, tab.path), await sheetPictures(zip, tab.path), gridToPage);
+      const parsed = parseCardPage(page);
+      if (!parsed.cards.length) throw new Error('No cards were found in that tab.');
+      this.warnings = [...parsed.warnings];
+      const templates = powerTemplates(), items = [];
+      for (const card of parsed.cards) {
+        this.progress(`Reading card ${items.length + 1} of ${parsed.cards.length} (${card.number})…`, 10 + (items.length / parsed.cards.length) * 88);
+        items.push(await this.processCard(card, page, templates));
+        await new Promise((r) => setTimeout(r));
+      }
+      await this.finish(items);
+    } catch (err) {
+      console.error(err);
+      this.error = err.message || 'Could not read that Excel file.';
       this.start();
     }
   }
