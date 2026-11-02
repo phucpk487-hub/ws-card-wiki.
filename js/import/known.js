@@ -17,3 +17,10 @@ export function fillTraits(items, known = []) {
   }
   return out;
 }
+
+/** Trial deck cards (numbers like ABC/S01-T01) are a separate product from the booster in the same file. */
+export const isTrialNumber = (n) => /-T\d+[A-Za-z]*$/i.test(String(n || ''));
+export function splitTrial(items) {
+  const trial = items.filter((i) => isTrialNumber(i.card.number));
+  return { main: items.filter((i) => !isTrialNumber(i.card.number)), trial };
+}

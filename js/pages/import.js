@@ -7,7 +7,7 @@ import { isNativeApp } from '../lib/files.js';
 import { detectColor, powerCrop, soulCount, hasSoulTrigger, detectTrigger, detectClimaxTriggers, detectCounter, readPowerCanvas, toBlob } from '../import/images.js';
 import { powerTemplates, learnPower, learnedDigitsText } from '../import/powerLearn.js';
 import { savePack, deletePack, listPacks, listKnownCards } from '../import/store.js';
-import { fillTraits } from '../import/known.js';
+import { fillTraits, splitTrial } from '../import/known.js';
 import { resetDb } from '../lib/db.js';
 import { setsToJson, setsFromJson } from '../lib/backup.js';
 import { saveFile } from '../lib/files.js';
@@ -328,7 +328,9 @@ class Importer {
     const filled = fillTraits(items, await listKnownCards());
     for (const w of filled) { const num = w.split(':')[0]; this.warnings = this.warnings.filter((x) => !x.startsWith(`${num}: no trait list`)); }
     this.warnings.push(...filled);
-    this.form.code = items[0].card.number.replace(/-\d+[A-Za-z]*$/, '');
+    const parts = splitTrial(items);
+    if (parts.trial.length && parts.main.length) this.warnings.push(`${parts.trial.length} trial deck card${parts.trial.length === 1 ? '' : 's'} (numbers like ${parts.trial[0].card.number}) will be saved as a separate set, “… (Trial Deck)”.`);
+    this.form.code = (parts.main[0] || items[0]).card.number.replace(/-[A-Z]{0,2}\d+[A-Za-z]*$/, '');
     this.items = items;
     this.review();
   }
@@ -491,21 +493,24 @@ class Importer {
     if (!form.code || !form.name) { err.textContent = 'Set code and set name are required.'; err.hidden = false; return; }
     btn.disabled = true; btn.textContent = 'Saving…';
     try {
-      const id = slug(form.code), images = new Map();
-      const cards = this.items.map((it) => {
-        const c = it.card, s = slug(c.number), out = { ...c };
-        delete out._img; delete out._table; delete out._hp;
-        Object.assign(out, { series: form.series, set: form.code, rarity: (c.rarities && c.rarities[0]) || '', flavor: '', illustrator: '', image: null, altImages: [] });
-        const ext = (b) => (b.type === 'image/webp' ? 'webp' : 'jpg');
-        if (it.mainBlob) { const k = `${id}/${s}.${ext(it.mainBlob)}`; images.set(k, it.mainBlob); out.image = `idb:${k}`; }
-        it.altBlobs.forEach((b, n) => { const k = `${id}/${s}-alt${n + 1}.${ext(b)}`; images.set(k, b); out.altImages.push(`idb:${k}`); });
-        return out;
-      });
-      const pack = {
-        id, savedAt: Date.now(), cards,
-        set: { code: form.code, name: form.name, series: form.series, type: form.type, releaseDate: form.date, total: cards.length, description: `${form.name}. Imported from a card sheet PDF.` },
+      const parts = splitTrial(this.items), both = parts.main.length && parts.trial.length;
+      const build = (list, code, name, type) => {
+        const id = slug(code), images = new Map();
+        const cards = list.map((it) => {
+          const c = it.card, s = slug(c.number), out = { ...c };
+          delete out._img; delete out._table; delete out._hp;
+          Object.assign(out, { series: form.series, set: code, rarity: (c.rarities && c.rarities[0]) || '', flavor: '', illustrator: '', image: null, altImages: [] });
+          const ext = (b) => (b.type === 'image/webp' ? 'webp' : 'jpg');
+          if (it.mainBlob) { const k = `${id}/${s}.${ext(it.mainBlob)}`; images.set(k, it.mainBlob); out.image = `idb:${k}`; }
+          it.altBlobs.forEach((b, n) => { const k = `${id}/${s}-alt${n + 1}.${ext(b)}`; images.set(k, b); out.altImages.push(`idb:${k}`); });
+          return out;
+        });
+        return { pack: { id, savedAt: Date.now(), cards, set: { code, name, series: form.series, type, releaseDate: form.date, total: cards.length, description: `${name}. Imported from a card sheet.` } }, images };
       };
-      await savePack(pack, images);
+      const jobs = both
+        ? [build(parts.main, form.code, form.name, form.type), build(parts.trial, `${form.code}-T`, `${form.name} (Trial Deck)`, 'Trial Deck')]
+        : [build(this.items, form.code, form.name, form.type)];
+      for (const j of jobs) await savePack(j.pack, j.images);
       resetDb();
       this.freeUrls();
       this.navigate(setHref(form.code));

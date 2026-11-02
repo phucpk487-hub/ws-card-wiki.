@@ -12,7 +12,7 @@
 // so power, soul, colour, traits and triggers come straight from the PDF. Pure functions on the page model (see pdfReader.js).
 import { canonicalTrigger } from '../lib/triggers.js';
 
-const NUM_RE = /^[A-Z0-9]+\/[A-Z0-9]+-\d+[A-Za-z]*$/;
+const NUM_RE = /^[A-Z0-9]+\/[A-Z0-9]+-[A-Z]{0,2}\d+[A-Za-z]*$/;   // also trial deck (-T01) and promo (-P01) numbers
 const COLORS = ['Yellow', 'Green', 'Red', 'Blue', 'Purple', 'White', 'Colorless'];
 const ROW1 = ['Level', 'Cost', 'Power', 'Trait', 'Trait', 'Trait'];
 const ROW2 = ['Card', 'Rarity', 'Color', 'Souls', 'Trigger', 'Trigger'];
@@ -115,6 +115,6 @@ export function parseTableSheet(pages) {
   }
   const seen = new Set();
   for (const c of cards) { if (seen.has(c.number)) warnings.push(`duplicate card number ${c.number}`); seen.add(c.number); }
-  const setCode = cards.length ? cards[0].number.replace(/-\d+[A-Za-z]*$/, '') : '';
+  const setCode = cards.length ? cards[0].number.replace(/-[A-Z]{0,2}\d+[A-Za-z]*$/, '') : '';
   return { cards, setCode, warnings };
 }

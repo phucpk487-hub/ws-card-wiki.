@@ -51,3 +51,13 @@ test('picture import: the PDF address needs a tab number', async () => {
   assert.match(pdfUrl({ id: ID, gid: null }, '1829'), /export\?format=pdf&gid=1829&/);
   assert.match(pdfUrl({ id: ID, gid: '77' }, ''), /gid=77&/);
 });
+
+test('trial deck numbers (-T01) are accepted without a warning and split from the booster', async () => {
+  const { isTrialNumber, splitTrial } = await import('../js/import/known.js');
+  const t = csv([...block('Booster card', '1', '0', '1000', ['Thief', '', ''], 'P5X/SZ10-001', 'C', 'Yellow', '1', ['-', ''], 'AUTO - Draw.'), ...block('Trial card', '0', '0', '500', ['Thief', '', ''], 'P5X/SZ10-T01', 'TD', 'Yellow', '1', ['-', ''], 'AUTO - Heal.')]);
+  const { cards, setCode, warnings } = parseSheetCsv(t);
+  assert.equal(cards.length, 2); assert.deepEqual(warnings, []); assert.equal(cards[1].number, 'P5X/SZ10-T01'); assert.equal(setCode, 'P5X/SZ10');
+  assert.ok(isTrialNumber('P5X/SZ10-T01') && !isTrialNumber('P5X/SZ10-001') && !isTrialNumber('BD/WE49-T'));
+  const parts = splitTrial(cards.map((card) => ({ card })));
+  assert.deepEqual([parts.main.length, parts.trial.length], [1, 1]);
+});
