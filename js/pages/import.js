@@ -43,7 +43,7 @@ class Importer {
     this.el.innerHTML = `
       <h1>Import cards</h1>
       <p class="lead">Add a card sheet PDF to the database. Everything is read and stored in this browser; nothing is uploaded.</p>
-      ${this.error ? `<div class="state error" role="alert"><p>${esc(this.error)}</p></div>` : ''}
+      ${this.error ? `<div class="state error" role="alert"><p>${esc(this.error)}</p>${this.errorLink ? `<p>Download it with your browser instead: <a class="btn" href="${esc(this.errorLink)}" target="_blank" rel="noopener">Download the PDF</a></p><p class="muted small">When the browser has finished, come back here and choose that file under “Choose a PDF”.</p>` : ''}</div>` : ''}
       <form id="imp-form" class="panel imp-form">
         <label class="drop" id="drop" for="pdf">
           <input id="pdf" type="file" accept="application/pdf,.pdf" required>
@@ -134,7 +134,7 @@ class Importer {
       e.preventDefault();
       const fd = new FormData(e.target);
       this.form = { name: fd.get('name').trim(), series: fd.get('series').trim(), type: fd.get('type'), date: '', code: '' };
-      this.error = '';
+      this.error = ''; this.errorLink = '';
       this.readSheet(fd.get('link'), fd.get('tab'), fd.get('pics') === 'on');
     });
     this.el.addEventListener('click', async (e) => {
@@ -161,6 +161,7 @@ class Importer {
   }
 
   async read(file) {
+    this.errorLink = '';
     if (!file) { this.error = 'Choose a PDF file first.'; return this.start(); }
     try {
       this.progress('Opening PDF…', 2);
@@ -213,6 +214,7 @@ class Importer {
 
   /** Download the tab as a PDF and hand it to the normal PDF reader, which also finds the pictures. */
   async readSheetPdf(link, tab) {
+    this.errorLink = '';
     const ref = parseSheetLink(link), url = ref && pdfUrl(ref, tab);
     if (!ref) throw new Error('That does not look like a Google Sheets link.');
     if (!url) throw new Error('Pictures need the tab number. Open the tab in a browser and copy the digits after “#gid=” from the address, then put them in the Tab box (or paste the whole address).');
@@ -220,7 +222,9 @@ class Importer {
     const P = window.Capacitor && window.Capacitor.Plugins;
     let blob;
     if (isNativeApp() && P && P.Filesystem && P.Filesystem.downloadFile) {
-      const r = await P.Filesystem.downloadFile({ url, path: 'sheet-download.pdf', directory: 'CACHE' });
+      let r;
+      try { r = await P.Filesystem.downloadFile({ url, path: 'sheet-download.pdf', directory: 'CACHE', connectTimeout: 600000, readTimeout: 1800000 }); }
+      catch (err) { this.errorLink = url; throw new Error(`The app could not download the PDF from Google (${String(err.message || err).split(':')[0]}). A file this big often fails inside the app.`); }
       blob = await (await fetch(window.Capacitor.convertFileSrc(r.path))).blob();
     } else {
       const r = await fetch(url);
