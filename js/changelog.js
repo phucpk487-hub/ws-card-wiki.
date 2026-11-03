@@ -1,5 +1,6 @@
 // What changed, newest first. `from` is the build number that first had the change (the number after "1." in the version).
 export const CHANGELOG = [
+  { from: 54, notes: ['The Google Sheets link import was removed; use the Excel (.xlsx) import instead.'] },
   { from: 53, notes: ['Trial deck cards (numbers like -T01) are now recognised: a file with a booster and its trial deck is saved as two sets.'] },
   { from: 52, notes: ['Import page: read an Excel (.xlsx) card sheet, with its pictures. Big files are read piece by piece.'] },
   { from: 50, notes: ['Sheet link import can also get the pictures: tick "Also get the pictures" (needs the tab number). It downloads the tab as a PDF, so it is slower.'] },

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { openZip } from '../js/import/zip.js';
 import { sheetList, sheetRows, sheetPictures, pageFromSheet } from '../js/import/xlsx.js';
-import { gridToPage, parseCardPage } from '../js/import/sheetLink.js';
+import { gridToPage, parseCardPage } from '../js/import/cardGrid.js';
 
 const file = () => new Blob([readFileSync(new URL('./fixtures/cards.xlsx', import.meta.url))]);
 

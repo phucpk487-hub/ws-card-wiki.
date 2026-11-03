@@ -1,9 +1,8 @@
 import { openPdf } from '../import/pdfReader.js';
 import { parseSheet } from '../import/parse.js';
 import { isTableSheet, parseTableSheet } from '../import/tableSheet.js';
-import { parseSheetLink, csvUrls, pdfUrl, parseSheetCsv, parseCardPage, gridToPage, looksLikeHtml } from '../import/sheetLink.js';
+import { parseCardPage, gridToPage } from '../import/cardGrid.js';
 import { openZip, sheetList, sheetRows, sheetPictures, pageFromSheet } from '../import/xlsx.js';
-import { isNativeApp } from '../lib/files.js';
 import { detectColor, powerCrop, soulCount, hasSoulTrigger, detectTrigger, detectClimaxTriggers, detectCounter, readPowerCanvas, toBlob } from '../import/images.js';
 import { powerTemplates, learnPower, learnedDigitsText } from '../import/powerLearn.js';
 import { savePack, deletePack, listPacks, listKnownCards } from '../import/store.js';
@@ -44,7 +43,7 @@ class Importer {
     this.el.innerHTML = `
       <h1>Import cards</h1>
       <p class="lead">Add a card sheet PDF to the database. Everything is read and stored in this browser; nothing is uploaded.</p>
-      ${this.error ? `<div class="state error" role="alert"><p>${esc(this.error)}</p>${this.errorLink ? `<p>Download it with your browser instead: <a class="btn" href="${esc(this.errorLink)}" target="_blank" rel="noopener">Download the PDF</a></p><p class="muted small">When the browser has finished, come back here and choose that file under “Choose a PDF”.</p>` : ''}</div>` : ''}
+      ${this.error ? `<div class="state error" role="alert"><p>${esc(this.error)}</p></div>` : ''}
       <form id="imp-form" class="panel imp-form">
         <label class="drop" id="drop" for="pdf">
           <input id="pdf" type="file" accept="application/pdf,.pdf" required>
@@ -58,19 +57,6 @@ class Importer {
           <label>Release date <span class="muted">(optional)</span><input id="f-date" name="date" type="date" value="${esc(this.form.date)}"></label>
         </div>
         <button class="btn primary" type="submit">Read PDF</button>
-      </form>
-      <form id="sheet-form" class="panel imp-form">
-        <h2 style="margin-top:0">Or read a Google Sheets link</h2>
-        <p class="muted small">For a sheet with one table per card (Level, Cost, Power, Trait, Card No., Rarity, Color, Souls, Trigger, Effect). The sheet must be shared as “Anyone with the link can view”. The card data is read; pictures are not in a sheet, so these cards come without pictures.</p>
-        <div class="fields">
-          <label>Sheet link<input id="s-link" name="link" required inputmode="url" placeholder="https://docs.google.com/spreadsheets/d/…"></label>
-          <label>Tab <span class="muted">(its number from “#gid=…”, or its name)</span><input id="s-tab" name="tab" placeholder="e.g. 1829 or Persona 5X"></label>
-          <label>Set name<input id="s-name" name="name" required placeholder="e.g. Persona 5X (Chinese exclusive)"></label>
-          <label>Series<input id="s-series" name="series" required placeholder="e.g. Persona 5: The Phantom X"></label>
-          <label>Set type<select id="s-type" name="type">${SET_TYPES.map((t) => `<option>${t}</option>`).join('')}</select></label>
-        </div>
-        <label class="check"><input type="checkbox" id="s-pics" name="pics"> Also get the pictures <span class="muted small">(downloads the tab as a PDF, which is much bigger and slower; needs the tab number)</span></label>
-        <button class="btn primary" type="submit">Read sheet</button>
       </form>
       <form id="xlsx-form" class="panel imp-form">
         <h2 style="margin-top:0">Or read an Excel file (.xlsx)</h2>
@@ -144,13 +130,6 @@ class Importer {
       this.error = '';
       this.read(file.files[0] || this.file);
     });
-    this.el.querySelector('#sheet-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const fd = new FormData(e.target);
-      this.form = { name: fd.get('name').trim(), series: fd.get('series').trim(), type: fd.get('type'), date: '', code: '' };
-      this.error = ''; this.errorLink = '';
-      this.readSheet(fd.get('link'), fd.get('tab'), fd.get('pics') === 'on');
-    });
     const xl = this.el.querySelector('#xl-file'), xlMsg = this.el.querySelector('#xl-msg'), xlTab = this.el.querySelector('#xl-tab');
     xl.addEventListener('change', async () => {
       const f = xl.files[0]; if (!f) return;
@@ -167,7 +146,7 @@ class Importer {
       e.preventDefault();
       const fd = new FormData(e.target);
       this.form = { name: fd.get('name').trim(), series: fd.get('series').trim(), type: fd.get('type'), date: '', code: '' };
-      this.error = ''; this.errorLink = '';
+      this.error = '';
       this.readXlsx(xl.files[0], +fd.get('tab') || 0);
     });
     this.el.addEventListener('click', async (e) => {
@@ -194,7 +173,6 @@ class Importer {
   }
 
   async read(file) {
-    this.errorLink = '';
     if (!file) { this.error = 'Choose a PDF file first.'; return this.start(); }
     try {
       this.progress('Opening PDF…', 2);
@@ -224,77 +202,6 @@ class Importer {
   }
 
   /** Read one card's pictures: colour, power, soul, triggers, counter; returns the review item. */
-  /** Download a sheet tab as CSV. In the phone app the request goes out natively (no browser cross-origin limits). */
-  async fetchSheet(link, tab) {
-    const ref = parseSheetLink(link);
-    if (!ref) throw new Error('That does not look like a Google Sheets link. It should contain “docs.google.com/spreadsheets/d/…”.');
-    const http = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp;
-    const get = async (url) => {
-      if (isNativeApp() && http && http.get) { const r = await http.get({ url, responseType: 'text' }); return { status: r.status, text: String(r.data ?? '') }; }
-      const r = await fetch(url); return { status: r.status, text: await r.text() };
-    };
-    let last = '';
-    for (const { url, exact } of csvUrls(ref, tab)) {
-      try {
-        const r = await get(url);
-        if (r.status === 200 && r.text && !looksLikeHtml(r.text)) { if (!exact) this.sheetNote = 'Read by tab name: Google can leave out some cells that way. If anything is missing, use the tab number from the address (#gid=…) instead.'; return r.text; }
-        last = r.status === 200 ? 'private' : `status ${r.status}`;
-      } catch (err) { last = `network: ${err.message}`; }
-    }
-    if (last === 'private' || /status (401|403|404)/.test(last)) throw new Error('Google would not give the sheet to the app. Open the sheet, tap Share, set General access to “Anyone with the link” (Viewer), and try again. Also check the tab number or name.');
-    throw new Error(`Could not download the sheet (${last}). Check your connection, then try again.`);
-  }
-
-  /** Download the tab as a PDF and hand it to the normal PDF reader, which also finds the pictures. */
-  async readSheetPdf(link, tab) {
-    this.errorLink = '';
-    const ref = parseSheetLink(link), url = ref && pdfUrl(ref, tab);
-    if (!ref) throw new Error('That does not look like a Google Sheets link.');
-    if (!url) throw new Error('Pictures need the tab number. Open the tab in a browser and copy the digits after “#gid=” from the address, then put them in the Tab box (or paste the whole address).');
-    this.file = { name: 'Google Sheets' }; this.progress('Downloading the tab as a PDF (this can take a while)…', 10);
-    const P = window.Capacitor && window.Capacitor.Plugins;
-    let blob;
-    if (isNativeApp() && P && P.Filesystem && P.Filesystem.downloadFile) {
-      let r;
-      try { r = await P.Filesystem.downloadFile({ url, path: 'sheet-download.pdf', directory: 'CACHE', connectTimeout: 600000, readTimeout: 1800000 }); }
-      catch (err) { this.errorLink = url; throw new Error(`The app could not download the PDF from Google (${String(err.message || err).split(':')[0]}). A file this big often fails inside the app.`); }
-      blob = await (await fetch(window.Capacitor.convertFileSrc(r.path))).blob();
-    } else {
-      const r = await fetch(url);
-      if (!r.ok) throw new Error(`Google would not give the PDF (status ${r.status}). Check that the sheet is shared as “Anyone with the link”.`);
-      blob = await r.blob();
-    }
-    const head = String.fromCharCode(...new Uint8Array(await blob.slice(0, 5).arrayBuffer()));
-    if (head !== '%PDF-') throw new Error('Google did not send a PDF. Set the sheet to “Anyone with the link can view” and check the tab number.');
-    const f = new File([blob], 'sheet.pdf', { type: 'application/pdf' });
-    this.file = f; await this.read(f);
-  }
-
-  async readSheet(link, tab, pictures = false) {
-    if (pictures) {
-      try { await this.readSheetPdf(link, tab); } catch (err) { console.error(err); this.error = err.message || 'Could not get the PDF.'; this.start(); }
-      return;
-    }
-    try {
-      this.file = { name: 'Google Sheets' }; this.sheetNote = '';
-      this.progress('Downloading the sheet…', 15);
-      const text = await this.fetchSheet(link, tab);
-      this.progress('Reading the cards…', 60);
-      const parsed = parseSheetCsv(text);
-      this.warnings = [...parsed.warnings]; if (this.sheetNote) this.warnings.push(this.sheetNote);
-      const templates = powerTemplates(), items = [];
-      for (const card of parsed.cards) items.push(await this.processCard(card, { images: [] }, templates));
-      if (!items.length) throw new Error('No cards were found in that tab.');
-      this.warnings = this.warnings.filter((w) => !/has no image for this card/.test(w));
-      this.warnings.push('Cards from a sheet have no pictures.');
-      await this.finish(items);
-    } catch (err) {
-      console.error(err);
-      this.error = err.message || 'Could not read that sheet.';
-      this.start();
-    }
-  }
-
   /** An Excel workbook: the tab's cells become the card tables, and the pictures over the cells go to the cards beside them. */
   async readXlsx(file, tabIndex) {
     try {
