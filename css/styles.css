@@ -457,3 +457,13 @@ body[data-page="home"] .bar { justify-content: space-between; }
 :root[data-theme="dark"][data-accent="amber"] { --bg: hsl(36 18% 8%); --surface: hsl(36 16% 11%); --surface-2: hsl(36 15% 15%); --border: hsl(36 12% 23%); --sk1: hsl(36 15% 15%); --sk2: hsl(36 14% 20%); }
 :root[data-accent="rose"] { --bg: hsl(340 28% 95%); --surface: hsl(340 35% 99%); --surface-2: hsl(340 22% 90%); --border: hsl(340 16% 81%); --sk1: hsl(340 22% 90%); --sk2: hsl(340 28% 94%); }
 :root[data-theme="dark"][data-accent="rose"] { --bg: hsl(340 18% 8%); --surface: hsl(340 16% 11%); --surface-2: hsl(340 15% 15%); --border: hsl(340 12% 23%); --sk1: hsl(340 15% 15%); --sk2: hsl(340 14% 20%); }
+
+/* editing a card or set */
+.edit-form { display: grid; gap: 12px; margin-top: 16px; }
+.edit-form h2 { margin: 0; }
+.edit-form label { display: grid; gap: 4px; font-size: .9rem; color: var(--muted); }
+.edit-form label.check { display: flex; align-items: center; gap: 8px; color: var(--text); }
+.edit-form input:not([type="checkbox"]), .edit-form select, .edit-form textarea { width: 100%; font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+.edit-form input:disabled, .edit-form select:disabled { opacity: .5; }
+#edit-area { margin-top: 16px; }
+.manage-zone #edit-area { margin: 0 0 10px; }

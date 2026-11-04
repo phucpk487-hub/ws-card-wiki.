@@ -92,3 +92,16 @@ export async function listKnownCards() {
   try { return (await wrap(db.transaction('packs').objectStore('packs').getAll())).flatMap((p) => p.cards || []); }
   catch { return []; } finally { db.close(); }
 }
+
+/** Change a saved pack in place (cards or set details); images stay as they are. fn(pack) edits and returns nothing. */
+export async function updatePack(id, fn) {
+  const db = await open();
+  try {
+    const pack = await wrap(db.transaction('packs').objectStore('packs').get(id));
+    if (!pack) throw new Error('This set is not saved on this device, so it cannot be edited.');
+    fn(pack);
+    const tx = db.transaction('packs', 'readwrite');
+    tx.objectStore('packs').put(pack);
+    await done(tx);
+  } finally { db.close(); }
+}

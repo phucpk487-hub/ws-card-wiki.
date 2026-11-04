@@ -1,6 +1,7 @@
 import { cardsInSet } from '../lib/db.js';
 import { filterText } from '../lib/search.js';
 import { deleteSet } from '../lib/setAdmin.js';
+import { setFormHtml, formValues, saveSetEdit } from '../lib/editor.js';
 import { esc, cardTile, chip, emptyState, formatDate, setHref, searchHref } from '../lib/ui.js';
 
 const setCard = (s) => `<a class="panel link set" href="${setHref(s.code)}">
@@ -80,9 +81,23 @@ function renderDetail(db, code, navigate) {
       ${cards.length ? `<div class="grid">${cards.map(cardTile).join('')}</div>`
         : emptyState(set.upcoming ? 'Not released yet' : 'No cards added yet', set.upcoming ? 'Card data will appear here once this set is revealed.' : 'This set has no card data in the database yet.')}
       <section class="panel manage-zone" aria-labelledby="adm"><h2 id="adm">Manage this set</h2>
+        ${set.packId ? '<div id="edit-area"><button class="btn" id="edit-open">Edit set…</button></div>' : ''}
         <div id="del-area"><button class="btn danger" id="del-open">Delete set…</button></div></section>
     </div>`,
     mount(root) {
+      const ea = root.querySelector('#edit-area');
+      if (ea) ea.addEventListener('click', (e) => {
+        if (e.target.id === 'edit-open') {
+          ea.innerHTML = setFormHtml(set, [...new Set(db.sets.map((x) => x.type))]);
+          const form = ea.querySelector('#edit-form'); form.elements.name.focus();
+          form.addEventListener('submit', async (ev) => {
+            ev.preventDefault(); const err = form.querySelector('#edit-err'), btn = form.querySelector('[type=submit]');
+            btn.disabled = true; btn.textContent = 'Saving…';
+            try { await saveSetEdit(set, formValues(form)); navigate(location.hash); }
+            catch (x) { btn.disabled = false; btn.textContent = 'Save changes'; err.textContent = `Could not save: ${x.message}`; }
+          });
+        } else if (e.target.closest('[data-cancel]')) ea.innerHTML = '<button class="btn" id="edit-open">Edit set…</button>';
+      });
       const area = root.querySelector('#del-area'); if (!area) return;
       const n = cards.length, how = set.source === 'imported'
         ? 'It is removed from this browser, including its saved card images.'
