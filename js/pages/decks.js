@@ -3,7 +3,7 @@ import { listDecks, getDeck, saveDeck, deleteDeck, persistent } from '../lib/dec
 import { DECK_SIZE, MAX_COPIES, MAX_CLIMAX, emptyDeck, countOf, totalCards, canAdd, withCard, groupDeck, analyze, parseDeckText, exportDeckText } from '../lib/deck.js';
 import { decksToJson, decksFromJson, restoreDecks } from '../lib/backup.js';
 import { saveFile } from '../lib/files.js';
-import { buildPdf, cardJpeg, printList } from '../lib/printPdf.js';
+import { buildPdf, cardJpeg, deckImage, printList } from '../lib/printPdf.js';
 import { startGame, mulligan, draw, summarize, HAND } from '../lib/handTest.js';
 import { esc, displayName, cardArt, cardHref, colorDot, colorBadge, chip, emptyState, triggerBadge, COLOR_HEX } from '../lib/ui.js';
 
@@ -119,6 +119,7 @@ function editor({ db, path }, byNumber) {
         <div id="dstats"></div>
         <div class="toolbar">
           <button class="btn" id="b-hand">Test hand</button>
+          <button class="btn" id="b-image">Export image</button>
           <button class="btn" id="b-print">Print PDF</button>
           <button class="btn" id="b-export">Export list</button>
           <button class="btn" id="b-import">Import list</button>
@@ -254,6 +255,22 @@ function editor({ db, path }, byNumber) {
         else if (b.id === 'h-draw') { game = draw(game); drawHand(); }
         else if (b.id === 'h-new') newGame();
         else if (b.id === 'h-close') { handBox.hidden = true; game = null; }
+      });
+      $('#b-image').addEventListener('click', () => {
+        box.hidden = false;
+        box.innerHTML = `<p><strong>Deck image</strong> · one picture of the whole deck, 10 cards per row</p><div class="toolbar"><label><input type="checkbox" id="itext" checked> Show the deck name and card count at the top</label></div><div class="toolbar"><button class="btn primary" id="imake">Save image</button><button class="btn" id="close">Close</button><span class="muted small" id="imsg2" role="status"></span></div>`;
+        box.querySelector('#close').onclick = () => { box.hidden = true; };
+        box.querySelector('#imake').onclick = async () => {
+          const msg = box.querySelector('#imsg2'), btn = box.querySelector('#imake');
+          const list = printList(deck, byNumber);
+          if (!list.length) { msg.textContent = 'Add some cards first.'; return; }
+          btn.disabled = true; msg.textContent = 'Making the picture…';
+          try {
+            const withTitle = box.querySelector('#itext').checked, a = analyze(deck, byNumber);
+            const blob = await deckImage(list, byNumber, { title: withTitle ? (deck.name || 'Deck') : '', subtitle: withTitle ? `${a.total} cards · Climax ${a.stats.climax}` : '' });
+            msg.textContent = await saveFile(`${deck.name.replace(/[^\w\- ]+/g, '').trim() || 'deck'}.png`, blob);
+          } catch (e) { msg.textContent = `Could not make the picture: ${e.message}`; } finally { btn.disabled = false; }
+        };
       });
       $('#b-print').addEventListener('click', () => {
         box.hidden = false;

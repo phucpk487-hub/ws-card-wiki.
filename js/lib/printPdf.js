@@ -54,29 +54,57 @@ export function buildPdf(images, { cutMarks = true } = {}) {
   return out;
 }
 
-/** Browser: one card picture (URL or null) -> upright JPEG cropped to the card's shape. Landscape pictures (Climax) are turned upright. */
-export async function cardJpeg(card, { width = 630 } = {}) {
-  const height = Math.round(width * 88 / 63);
-  const cv = document.createElement('canvas'); cv.width = width; cv.height = height;
-  const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, width, height);
-  let img = null;
-  if (card && card.image) {
-    try { img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = card.image; }); } catch { img = null; }
-  }
+const loadImage = (src) => new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
+
+/** Draw one card (picture, or a plain box with its number and name) into the box x,y,w,h. Landscape pictures (Climax) are turned upright and cropped to the card shape. */
+export function paintCard(ctx, card, img, x, y, w, h) {
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  ctx.fillStyle = '#fff'; ctx.fillRect(x, y, w, h);
   if (img) {
     const turn = img.naturalWidth > img.naturalHeight;
     const sw = turn ? img.naturalHeight : img.naturalWidth, sh = turn ? img.naturalWidth : img.naturalHeight;
-    const k = Math.max(width / sw, height / sh);   // cover
-    ctx.save(); ctx.translate(width / 2, height / 2); if (turn) ctx.rotate(Math.PI / 2);
-    ctx.drawImage(img, -img.naturalWidth * k / 2, -img.naturalHeight * k / 2, img.naturalWidth * k, img.naturalHeight * k); ctx.restore();
+    const k = Math.max(w / sw, h / sh);   // cover
+    ctx.translate(x + w / 2, y + h / 2); if (turn) ctx.rotate(Math.PI / 2);
+    ctx.drawImage(img, -img.naturalWidth * k / 2, -img.naturalHeight * k / 2, img.naturalWidth * k, img.naturalHeight * k);
   } else {
-    ctx.strokeStyle = '#999'; ctx.lineWidth = 6; ctx.strokeRect(3, 3, width - 6, height - 6);
-    ctx.fillStyle = '#222'; ctx.textAlign = 'center'; ctx.font = 'bold 40px sans-serif';
-    ctx.fillText(card ? card.number : '?', width / 2, height / 2 - 20); ctx.font = '34px sans-serif';
-    String(card ? card.name : 'Not in database').match(/.{1,22}/g).slice(0, 3).forEach((t, i) => ctx.fillText(t, width / 2, height / 2 + 40 + i * 44));
+    const u = w / 630;
+    ctx.strokeStyle = '#999'; ctx.lineWidth = 6 * u; ctx.strokeRect(x + 3 * u, y + 3 * u, w - 6 * u, h - 6 * u);
+    ctx.fillStyle = '#222'; ctx.textAlign = 'center'; ctx.font = `bold ${40 * u}px sans-serif`;
+    ctx.fillText(card ? card.number : '?', x + w / 2, y + h / 2 - 20 * u); ctx.font = `${34 * u}px sans-serif`;
+    String(card ? card.name : 'Not in database').match(/.{1,22}/g).slice(0, 3).forEach((t, i) => ctx.fillText(t, x + w / 2, y + h / 2 + (40 + i * 44) * u));
   }
+  ctx.restore();
+}
+
+/** Browser: one card picture (URL or null) -> upright JPEG cropped to the card's shape. */
+export async function cardJpeg(card, { width = 630 } = {}) {
+  const height = Math.round(width * 88 / 63);
+  const cv = document.createElement('canvas'); cv.width = width; cv.height = height;
+  paintCard(cv.getContext('2d'), card, card && card.image ? await loadImage(card.image) : null, 0, 0, width, height);
   const blob = await new Promise((r) => cv.toBlob(r, 'image/jpeg', 0.88));
   return { jpeg: new Uint8Array(await blob.arrayBuffer()), width, height };
+}
+
+/** Browser: the whole deck as one picture, cards in rows of `cols` (like a deck builder's grid). Returns a PNG Blob. */
+export async function deckImage(numbers, byNumber, { cols = 10, cardW = 180, title = '', subtitle = '' } = {}) {
+  const cardH = Math.round(cardW * 88 / 63), gap = Math.round(cardW * 0.05), pad = Math.round(cardW * 0.15);
+  const head = title ? Math.round(cardW * 0.5) : 0, rows = Math.max(1, Math.ceil(numbers.length / cols));
+  const W = pad * 2 + cols * cardW + (cols - 1) * gap, H = pad * 2 + head + rows * cardH + (rows - 1) * gap;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d'); ctx.fillStyle = '#9fc9ab'; ctx.fillRect(0, 0, W, H);
+  if (title) {
+    ctx.fillStyle = '#12301d'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.font = `bold ${Math.round(cardW * 0.26)}px sans-serif`;
+    ctx.fillText(title, pad, pad + head / 2 - 2);
+    if (subtitle) { ctx.textAlign = 'right'; ctx.font = `${Math.round(cardW * 0.18)}px sans-serif`; ctx.fillText(subtitle, W - pad, pad + head / 2 - 2); }
+  }
+  const imgs = new Map();
+  for (let i = 0; i < numbers.length; i++) {
+    const n = numbers[i], c = byNumber.get(n);
+    if (!imgs.has(n)) imgs.set(n, c && c.image ? await loadImage(c.image) : null);
+    paintCard(ctx, c, imgs.get(n), pad + (i % cols) * (cardW + gap), pad + head + Math.floor(i / cols) * (cardH + gap), cardW, cardH);
+    if (i % 5 === 4) await new Promise((r) => setTimeout(r));
+  }
+  return new Promise((r) => cv.toBlob(r, 'image/png'));
 }
 
 /** Card numbers in print order: every copy, or one of each. */
