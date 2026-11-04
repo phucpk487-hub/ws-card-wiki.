@@ -3,6 +3,7 @@ import { listDecks, getDeck, saveDeck, deleteDeck, persistent } from '../lib/dec
 import { DECK_SIZE, MAX_COPIES, MAX_CLIMAX, emptyDeck, countOf, totalCards, canAdd, withCard, groupDeck, analyze, parseDeckText, exportDeckText } from '../lib/deck.js';
 import { decksToJson, decksFromJson, restoreDecks } from '../lib/backup.js';
 import { saveFile } from '../lib/files.js';
+import { ACCENTS, currentAccent } from '../lib/accent.js';
 import { buildPdf, cardJpeg, deckImage, printList } from '../lib/printPdf.js';
 import { startGame, mulligan, draw, summarize, HAND } from '../lib/handTest.js';
 import { esc, displayName, cardArt, cardHref, colorDot, colorBadge, chip, emptyState, triggerBadge, COLOR_HEX } from '../lib/ui.js';
@@ -267,7 +268,7 @@ function editor({ db, path }, byNumber) {
           btn.disabled = true; msg.textContent = 'Making the picture…';
           try {
             const withTitle = box.querySelector('#itext').checked, a = analyze(deck, byNumber);
-            const blob = await deckImage(list, byNumber, { title: withTitle ? (deck.name || 'Deck') : '', subtitle: withTitle ? `${a.total} cards · Climax ${a.stats.climax}` : '' });
+            const blob = await deckImage(list, byNumber, { title: withTitle ? (deck.name || 'Deck') : '', subtitle: withTitle ? `${a.total} cards · Climax ${a.stats.climax}` : '', background: accentTone() });
             msg.textContent = await saveFile(`${deck.name.replace(/[^\w\- ]+/g, '').trim() || 'deck'}.png`, blob);
           } catch (e) { msg.textContent = `Could not make the picture: ${e.message}`; } finally { btn.disabled = false; }
         };
@@ -312,4 +313,11 @@ function editor({ db, path }, byNumber) {
       });
     },
   };
+}
+
+// Soft version of the chosen accent colour, used as the deck picture's background (the accent mixed with white).
+function accentTone() {
+  const hex = (ACCENTS.find((a) => a.id === currentAccent()) || ACCENTS[0]).swatch;
+  const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return '#' + c.map((v) => Math.round(v * 0.45 + 255 * 0.55).toString(16).padStart(2, '0')).join('');
 }

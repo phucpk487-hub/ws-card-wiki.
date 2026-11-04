@@ -86,12 +86,12 @@ export async function cardJpeg(card, { width = 630 } = {}) {
 }
 
 /** Browser: the whole deck as one picture, cards in rows of `cols` (like a deck builder's grid). Returns a PNG Blob. */
-export async function deckImage(numbers, byNumber, { cols = 10, cardW = 180, title = '', subtitle = '' } = {}) {
+export async function deckImage(numbers, byNumber, { cols = 10, cardW = 180, title = '', subtitle = '', background = '#9fc9ab' } = {}) {
   const cardH = Math.round(cardW * 88 / 63), gap = Math.round(cardW * 0.05), pad = Math.round(cardW * 0.15);
   const head = title ? Math.round(cardW * 0.5) : 0, rows = Math.max(1, Math.ceil(numbers.length / cols));
   const W = pad * 2 + cols * cardW + (cols - 1) * gap, H = pad * 2 + head + rows * cardH + (rows - 1) * gap;
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
-  const ctx = cv.getContext('2d'); ctx.fillStyle = '#9fc9ab'; ctx.fillRect(0, 0, W, H);
+  const ctx = cv.getContext('2d'); ctx.fillStyle = background; ctx.fillRect(0, 0, W, H);
   if (title) {
     ctx.fillStyle = '#12301d'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.font = `bold ${Math.round(cardW * 0.26)}px sans-serif`;
     ctx.fillText(title, pad, pad + head / 2 - 2);
