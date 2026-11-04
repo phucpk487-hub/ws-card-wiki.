@@ -268,7 +268,7 @@ function editor({ db, path }, byNumber) {
           btn.disabled = true; msg.textContent = 'Making the picture…';
           try {
             const withTitle = box.querySelector('#itext').checked, a = analyze(deck, byNumber);
-            const blob = await deckImage(list, byNumber, { title: withTitle ? (deck.name || 'Deck') : '', subtitle: withTitle ? `${a.total} cards · Climax ${a.stats.climax}` : '', background: accentTone() });
+            const blob = await deckImage(list, byNumber, { title: withTitle ? (deck.name || 'Deck') : '', subtitle: withTitle ? `${a.total} cards · Climax ${a.stats.climax}` : '', ...accentTones() });
             msg.textContent = await saveFile(`${deck.name.replace(/[^\w\- ]+/g, '').trim() || 'deck'}.png`, blob);
           } catch (e) { msg.textContent = `Could not make the picture: ${e.message}`; } finally { btn.disabled = false; }
         };
@@ -315,9 +315,10 @@ function editor({ db, path }, byNumber) {
   };
 }
 
-// Soft version of the chosen accent colour, used as the deck picture's background (the accent mixed with white).
-function accentTone() {
+// Colours for the deck picture from the chosen accent: a soft background (accent mixed with white) and a very dark ink (accent darkened).
+function accentTones() {
   const hex = (ACCENTS.find((a) => a.id === currentAccent()) || ACCENTS[0]).swatch;
   const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-  return '#' + c.map((v) => Math.round(v * 0.45 + 255 * 0.55).toString(16).padStart(2, '0')).join('');
+  const to = (f) => '#' + c.map((v) => Math.round(f(v)).toString(16).padStart(2, '0')).join('');
+  return { background: to((v) => v * 0.45 + 255 * 0.55), ink: to((v) => v * 0.28) };
 }
