@@ -4,7 +4,6 @@ import { parseHash } from './lib/router.js';
 import { initTheme } from './lib/theme.js';
 import { initAccent } from './lib/accent.js';
 import { skeletonPage, errorState, emptyState } from './lib/ui.js';
-import { searchHref } from './lib/ui.js';
 import { initUpdates } from './lib/updateUi.js';
 
 const ROUTES = {
@@ -79,12 +78,6 @@ async function route() {
 
 initTheme(document.getElementById('theme-btn'));
 initAccent(document.getElementById('accent-btn'));
-document.getElementById('header-search').addEventListener('submit', (e) => {
-  e.preventDefault();
-  const q = new FormData(e.target).get('q').toString().trim();
-  e.target.reset();
-  navigate(q ? searchHref({ q }) : '#/cards');
-});
 // Phone back button: step back through the pages you opened; on the first page go Home; on Home leave the app.
 // (The native default quits the app straight away because it cannot see our hash history.)
 let depth = 0;

@@ -445,3 +445,15 @@ body[data-page="home"] .bar { justify-content: space-between; }
 .accent-pop[hidden] { display: none; }
 .swatch { width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--surface); background: var(--sw); box-shadow: 0 0 0 1px var(--border); cursor: pointer; }
 .swatch[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--text); }
+
+/* background tint follows the accent colour (ruby keeps the original warm paper tones) */
+:root[data-accent="ocean"] { --bg: hsl(212 28% 95%); --surface: hsl(212 35% 99%); --surface-2: hsl(212 22% 90%); --border: hsl(212 16% 81%); --sk1: hsl(212 22% 90%); --sk2: hsl(212 28% 94%); }
+:root[data-theme="dark"][data-accent="ocean"] { --bg: hsl(212 18% 8%); --surface: hsl(212 16% 11%); --surface-2: hsl(212 15% 15%); --border: hsl(212 12% 23%); --sk1: hsl(212 15% 15%); --sk2: hsl(212 14% 20%); }
+:root[data-accent="forest"] { --bg: hsl(132 28% 95%); --surface: hsl(132 35% 99%); --surface-2: hsl(132 22% 90%); --border: hsl(132 16% 81%); --sk1: hsl(132 22% 90%); --sk2: hsl(132 28% 94%); }
+:root[data-theme="dark"][data-accent="forest"] { --bg: hsl(132 18% 8%); --surface: hsl(132 16% 11%); --surface-2: hsl(132 15% 15%); --border: hsl(132 12% 23%); --sk1: hsl(132 15% 15%); --sk2: hsl(132 14% 20%); }
+:root[data-accent="violet"] { --bg: hsl(268 28% 95%); --surface: hsl(268 35% 99%); --surface-2: hsl(268 22% 90%); --border: hsl(268 16% 81%); --sk1: hsl(268 22% 90%); --sk2: hsl(268 28% 94%); }
+:root[data-theme="dark"][data-accent="violet"] { --bg: hsl(268 18% 8%); --surface: hsl(268 16% 11%); --surface-2: hsl(268 15% 15%); --border: hsl(268 12% 23%); --sk1: hsl(268 15% 15%); --sk2: hsl(268 14% 20%); }
+:root[data-accent="amber"] { --bg: hsl(36 28% 95%); --surface: hsl(36 35% 99%); --surface-2: hsl(36 22% 90%); --border: hsl(36 16% 81%); --sk1: hsl(36 22% 90%); --sk2: hsl(36 28% 94%); }
+:root[data-theme="dark"][data-accent="amber"] { --bg: hsl(36 18% 8%); --surface: hsl(36 16% 11%); --surface-2: hsl(36 15% 15%); --border: hsl(36 12% 23%); --sk1: hsl(36 15% 15%); --sk2: hsl(36 14% 20%); }
+:root[data-accent="rose"] { --bg: hsl(340 28% 95%); --surface: hsl(340 35% 99%); --surface-2: hsl(340 22% 90%); --border: hsl(340 16% 81%); --sk1: hsl(340 22% 90%); --sk2: hsl(340 28% 94%); }
+:root[data-theme="dark"][data-accent="rose"] { --bg: hsl(340 18% 8%); --surface: hsl(340 16% 11%); --surface-2: hsl(340 15% 15%); --border: hsl(340 12% 23%); --sk1: hsl(340 15% 15%); --sk2: hsl(340 14% 20%); }
