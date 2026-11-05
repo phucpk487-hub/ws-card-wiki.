@@ -217,7 +217,8 @@ table.kv tr:last-child > * { border-bottom: 0; }
   .searchbar .btn { padding: 0 14px; }
 }
 .alts { display: flex; gap: 8px; margin-top: 12px; }
-.alts a { flex: 1; min-width: 0; }
+.alts .alt { flex: 1; min-width: 0; display: grid; gap: 6px; align-content: start; }
+.alts .alt .btn { margin: 0; justify-self: stretch; }
 .alts img { width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--border); display: block; }
 .note { color: var(--muted); font-style: italic; }
 .kw.combo { color: var(--accent); }

@@ -39,6 +39,25 @@ export async function saveCardEdit(set, number, values) {
   resetDb();
 }
 
+/** Make alternate picture number `i` the main one; the old main picture becomes that alternate (nothing is lost). */
+export function swapMainArt(card, i) {
+  const alts = [...(card.altImages || [])];
+  if (!alts[i]) return card;
+  const next = alts[i];
+  if (card.image) alts[i] = card.image; else alts.splice(i, 1);
+  return { ...card, image: next, altImages: alts };
+}
+
+export async function saveMainArt(set, number, i, shown) {
+  await updatePack(set.packId, (pack) => {
+    const k = pack.cards.findIndex((c) => c.number === number);
+    if (k < 0) throw new Error(`Card ${number} was not found in this set.`);
+    if ((pack.cards[k].altImages || []).length !== shown) throw new Error('The saved pictures do not match what is shown. Reload the page and try again.');
+    pack.cards[k] = swapMainArt(pack.cards[k], i);
+  });
+  resetDb();
+}
+
 export async function saveSetEdit(set, values) {
   await updatePack(set.packId, (pack) => {
     pack.set = applySetEdit(pack.set, values);

@@ -3,7 +3,7 @@ import { relatedCards } from '../lib/search.js';
 import { listDecks, saveDeck } from '../lib/deckStore.js';
 import { canAdd, withCard, countOf, emptyDeck } from '../lib/deck.js';
 import { pushRecent } from '../lib/recent.js';
-import { cardFormHtml, formValues, saveCardEdit } from '../lib/editor.js';
+import { cardFormHtml, formValues, saveCardEdit, saveMainArt } from '../lib/editor.js';
 import { esc, displayName, cardArt, cardTile, colorBadge, formatEffect, triggerBadge, searchHref, setHref, cardHref, emptyState } from '../lib/ui.js';
 
 export async function render({ db, path }) {
@@ -45,7 +45,7 @@ export async function render({ db, path }) {
     <nav class="crumbs" aria-label="Breadcrumb"><a href="#/">Home</a> / <a href="#/cards">Cards</a> / <span>${esc(card.number)}</span></nav>
     <article class="card-page">
       <div class="card-visual">${cardArt(card, { lazy: false })}
-        ${(card.altImages || []).length ? `<div class="alts" aria-label="Alternate art">${card.altImages.map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="Alternate art ${i + 1} of ${esc(card.name)}" loading="lazy"></a>`).join('')}</div>` : ''}
+        ${(card.altImages || []).length ? `<div class="alts" aria-label="Alternate art">${card.altImages.map((u, i) => `<div class="alt"><a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="Alternate art ${i + 1} of ${esc(card.name)}" loading="lazy"></a>${set && set.packId ? `<button class="btn tiny" data-art="${i}">Use as main art</button>` : ''}</div>`).join('')}</div>` : ''}
         <div class="nav-prev-next">
           ${prev ? `<a class="btn" href="${cardHref(prev.number)}" rel="prev">← ${esc(prev.number.split('-').pop())}</a>` : '<span></span>'}
           ${next ? `<a class="btn" href="${cardHref(next.number)}" rel="next">${esc(next.number.split('-').pop())} →</a>` : '<span></span>'}
@@ -70,6 +70,12 @@ export async function render({ db, path }) {
     title: displayName(card),
     html,
     mount(root, { db, navigate }) {
+      root.addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-art]'); if (!b) return;
+        b.disabled = true; b.textContent = 'Saving…';
+        try { await saveMainArt(set, card.number, +b.dataset.art, card.altImages.length); navigate(location.hash); }
+        catch (x) { b.disabled = false; b.textContent = 'Use as main art'; b.insertAdjacentHTML('afterend', `<span class="muted small" role="alert"> ${esc(x.message)}</span>`); }
+      });
       const ea = root.querySelector('#edit-area');
       if (ea) ea.addEventListener('click', async (e) => {
         if (e.target.id === 'edit-open') {
