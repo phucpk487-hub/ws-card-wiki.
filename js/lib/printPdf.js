@@ -77,11 +77,11 @@ export function paintCard(ctx, card, img, x, y, w, h) {
 }
 
 /** Browser: one card picture (URL or null) -> upright JPEG cropped to the card's shape. */
-export async function cardJpeg(card, { width = 630 } = {}) {
+export async function cardJpeg(card, { width = 744 } = {}) {
   const height = Math.round(width * 88 / 63);
   const cv = document.createElement('canvas'); cv.width = width; cv.height = height;
   paintCard(cv.getContext('2d'), card, card && card.image ? await loadImage(card.image) : null, 0, 0, width, height);
-  const blob = await new Promise((r) => cv.toBlob(r, 'image/jpeg', 0.88));
+  const blob = await new Promise((r) => cv.toBlob(r, 'image/jpeg', 0.95));
   return { jpeg: new Uint8Array(await blob.arrayBuffer()), width, height };
 }
 

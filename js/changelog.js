@@ -1,5 +1,6 @@
 // What changed, newest first. `from` is the build number that first had the change (the number after "1." in the version).
 export const CHANGELOG = [
+  { from: 59, notes: ['Sharper printing: imports have a Picture quality option (Print keeps larger pictures), and Print PDF now uses 300 dpi.'] },
   { from: 58, notes: ['You can now edit imported cards and sets: open a card and tap Edit card, or open a set and tap Edit set.'] },
   { from: 57, notes: ['Deck picture background now follows the accent colour.'] },
   { from: 56, notes: ['Page background now matches the accent colour.', 'The quick search box at the top was removed (use the search on Home and Cards).'] },
