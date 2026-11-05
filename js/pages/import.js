@@ -55,7 +55,6 @@ class Importer {
           <label>Series<input id="f-series" name="series" required placeholder="e.g. BanG Dream!" value="${esc(this.form.series)}"></label>
           <label>Set type<select id="f-type" name="type">${SET_TYPES.map((t) => `<option ${t === this.form.type ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
           <label>Release date <span class="muted">(optional)</span><input id="f-date" name="date" type="date" value="${esc(this.form.date)}"></label>
-          <label>Picture quality<select name="quality"><option value="print">Print (sharp, bigger)</option><option value="std">Standard (smaller)</option></select></label>
         </div>
         <button class="btn primary" type="submit">Read PDF</button>
       </form>
@@ -68,7 +67,6 @@ class Importer {
           <label>Set name<input id="xl-name" name="name" required placeholder="e.g. Persona 5X (Chinese exclusive)"></label>
           <label>Series<input id="xl-series" name="series" required placeholder="e.g. Persona 5: The Phantom X"></label>
           <label>Set type<select name="type">${SET_TYPES.map((t) => `<option>${t}</option>`).join('')}</select></label>
-          <label>Picture quality<select name="quality"><option value="print">Print (sharp, bigger)</option><option value="std">Standard (smaller)</option></select></label>
         </div>
         <button class="btn primary" type="submit">Read Excel file</button>
         <p id="xl-msg" class="muted small" role="status"></p>
@@ -128,7 +126,7 @@ class Importer {
     this.el.querySelector('#imp-form').addEventListener('submit', (e) => {
       e.preventDefault();
       const fd = new FormData(e.target);
-      this.form = { name: fd.get('name').trim(), series: fd.get('series').trim(), type: fd.get('type'), date: fd.get('date') || '', code: '' }; this.side = fd.get('quality') === 'std' ? 640 : 1100;
+      this.form = { name: fd.get('name').trim(), series: fd.get('series').trim(), type: fd.get('type'), date: fd.get('date') || '', code: '' };
       this.error = '';
       this.read(file.files[0] || this.file);
     });
@@ -147,7 +145,7 @@ class Importer {
     this.el.querySelector('#xlsx-form').addEventListener('submit', (e) => {
       e.preventDefault();
       const fd = new FormData(e.target);
-      this.form = { name: fd.get('name').trim(), series: fd.get('series').trim(), type: fd.get('type'), date: '', code: '' }; this.side = fd.get('quality') === 'std' ? 640 : 1100;
+      this.form = { name: fd.get('name').trim(), series: fd.get('series').trim(), type: fd.get('type'), date: '', code: '' };
       this.error = '';
       this.readXlsx(xl.files[0], +fd.get('tab') || 0);
     });
@@ -255,7 +253,7 @@ class Importer {
             item.power = card.power; item.soul = card.soul; item.glyphs = [];
             if (!card.color) card.color = detectColor(canvas);
             card.counter = card.type !== 'Climax' && detectCounter(canvas);
-            mainP = toBlob(canvas, this.side || 1100, this.side === 640 ? .82 : .9);
+            mainP = toBlob(canvas);
           } else {
           card.color = detectColor(canvas);
           if (card.type === 'Character') { item.crop = powerCrop(canvas); item.soul = soulCount(canvas); const pw = readPowerCanvas(canvas, templates); item.power = card._hp ?? pw.value; item.glyphs = pw.glyphs; }
@@ -279,7 +277,7 @@ class Importer {
           }
           card.triggers = canonicalTriggers(card.triggers);
           card.counter = card.type !== 'Climax' && detectCounter(canvas);
-          mainP = toBlob(canvas, this.side || 1100, this.side === 640 ? .82 : .9);
+          mainP = toBlob(canvas);
           }
         } else { if (!card._table) card.color = null; this.warnings.push(`${card.number}: the PDF has no image for this card.`); }
         const altP = ref.alts.map(async (a) => toBlob(await pg.images[a].pixels(), 420, .75));
