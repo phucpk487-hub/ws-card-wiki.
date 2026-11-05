@@ -3,7 +3,7 @@ import { relatedCards } from '../lib/search.js';
 import { listDecks, saveDeck } from '../lib/deckStore.js';
 import { canAdd, withCard, countOf, emptyDeck } from '../lib/deck.js';
 import { pushRecent } from '../lib/recent.js';
-import { cardFormHtml, formValues, saveCardEdit, saveMainArt } from '../lib/editor.js';
+import { saveMainArt } from '../lib/editor.js';
 import { esc, displayName, cardArt, cardTile, colorBadge, formatEffect, triggerBadge, searchHref, setHref, cardHref, emptyState } from '../lib/ui.js';
 
 export async function render({ db, path }) {
@@ -60,7 +60,6 @@ export async function render({ db, path }) {
           ${card.flavor ? `<blockquote class="flavor">“${esc(card.flavor)}”</blockquote>` : ''}
         </section>
         <section aria-labelledby="det"><h2 id="det">Details</h2><table class="kv"><tbody>${stats}</tbody></table></section>
-        ${set && set.packId ? '<div id="edit-area"><button class="btn" id="edit-open">Edit card…</button></div>' : ''}
       </div>
     </article>
     ${related.length ? `<section><div class="section-head"><h2>Related cards</h2></div><div class="grid">${related.map(cardTile).join('')}</div></section>` : ''}
@@ -75,23 +74,6 @@ export async function render({ db, path }) {
         b.disabled = true; b.textContent = 'Saving…';
         try { await saveMainArt(set, card.number, +b.dataset.art, card.altImages.length); navigate(location.hash); }
         catch (x) { b.disabled = false; b.textContent = 'Use as main art'; b.insertAdjacentHTML('afterend', `<span class="muted small" role="alert"> ${esc(x.message)}</span>`); }
-      });
-      const ea = root.querySelector('#edit-area');
-      if (ea) ea.addEventListener('click', async (e) => {
-        if (e.target.id === 'edit-open') {
-          ea.innerHTML = cardFormHtml(card);
-          const form = ea.querySelector('#edit-form'), t = form.elements.type;
-          t.addEventListener('change', () => { const ty = t.value; // fields that do not exist for this type are switched off
-            const on = (n, ok) => { form.elements[n].disabled = !ok; };
-            on('level', ty !== 'Climax'); on('cost', ty !== 'Climax'); on('counter', ty !== 'Climax'); on('power', ty === 'Character'); on('soul', ty === 'Character'); });
-          form.elements.name.focus();
-          form.addEventListener('submit', async (ev) => {
-            ev.preventDefault(); const err = form.querySelector('#edit-err'), btn = form.querySelector('[type=submit]');
-            btn.disabled = true; btn.textContent = 'Saving…';
-            try { await saveCardEdit(set, card.number, formValues(form)); navigate(location.hash); }
-            catch (x) { btn.disabled = false; btn.textContent = 'Save changes'; err.textContent = `Could not save: ${x.message}`; }
-          });
-        } else if (e.target.closest('[data-cancel]')) ea.innerHTML = '<button class="btn" id="edit-open">Edit card…</button>';
       });
       pushRecent(card.number);
       const key = (e) => {

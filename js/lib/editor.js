@@ -1,42 +1,14 @@
-// Editing cards and sets after they were imported. Pure helpers (applyCardEdit, applySetEdit) plus the form markup; saving goes through updatePack.
+// Editing a set after import, and choosing a card's main picture. Pure helpers (applySetEdit, swapMainArt) plus the form markup; saving goes through updatePack.
 import { updatePack } from '../import/store.js';
 import { resetDb } from './db.js';
-import { canonicalTriggers } from './triggers.js';
 import { esc } from './ui.js';
 
-export const COLORS = ['Yellow', 'Green', 'Red', 'Blue', 'Purple', 'White', 'Colorless'];
-export const TYPES = ['Character', 'Event', 'Climax'];
-const TRIGGERS = ['Soul', 'Pool', 'Draw', 'Come Back', 'Shot', 'Bounce', 'Gate', 'Standby', 'Treasure', 'Choice', 'Bar', 'Door', 'Pants'];
 const int = (v) => (String(v ?? '').trim() === '' || !Number.isFinite(+v) ? null : Math.max(0, Math.round(+v)));
-const list = (v) => String(v ?? '').split(',').map((t) => t.trim()).filter(Boolean);
-
-/** values: raw form values (strings / booleans). Returns the edited copy of card. Climax has no level, cost, power, soul or counter; only Characters have power and soul. */
-export function applyCardEdit(card, v) {
-  const type = TYPES.includes(v.type) ? v.type : card.type;
-  const out = { ...card, type, name: String(v.name ?? card.name).trim() || card.name, color: COLORS.includes(v.color) ? v.color : null };
-  out.level = type === 'Climax' ? null : int(v.level); out.cost = type === 'Climax' ? null : int(v.cost);
-  out.power = type === 'Character' ? int(v.power) : null; out.soul = type === 'Character' ? int(v.soul) : null;
-  out.counter = type !== 'Climax' && !!v.counter;
-  out.triggers = canonicalTriggers(list(v.triggers)); out.traits = list(v.traits);
-  const rarity = String(v.rarity ?? '').trim(); out.rarity = rarity; out.rarities = rarity ? [rarity] : [];
-  out.illustrator = String(v.illustrator ?? '').trim();
-  out.effect = String(v.effect ?? '').split('\n').map((t) => t.trim()).filter(Boolean);
-  return out;
-}
 
 export function applySetEdit(set, v) {
   const total = int(v.total);
   return { ...set, name: String(v.name ?? '').trim() || set.name, type: String(v.type ?? '').trim() || set.type, series: String(v.series ?? '').trim() || set.series,
     releaseDate: String(v.releaseDate ?? '').trim() || set.releaseDate, description: String(v.description ?? '').trim(), total: total || set.total };
-}
-
-export async function saveCardEdit(set, number, values) {
-  await updatePack(set.packId, (pack) => {
-    const i = pack.cards.findIndex((c) => c.number === number);
-    if (i < 0) throw new Error(`Card ${number} was not found in this set.`);
-    pack.cards[i] = applyCardEdit(pack.cards[i], values);
-  });
-  resetDb();
 }
 
 /** Make alternate picture number `i` the main one; the old main picture becomes that alternate (nothing is lost). */
@@ -67,31 +39,6 @@ export async function saveSetEdit(set, values) {
 }
 
 const field = (label, inner) => `<label>${label}${inner}</label>`;
-const sel = (k, opts, cur, blank) => `<select name="${k}">${blank ? '<option value="">?</option>' : ''}${opts.map((o) => `<option ${o === cur ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
-
-export function cardFormHtml(c) {
-  const ch = c.type === 'Character', cl = c.type === 'Climax';
-  return `<form class="panel edit-form" id="edit-form" autocomplete="off"><h2>Edit card</h2>
-    <div class="fields">
-      ${field('Name', `<input name="name" value="${esc(c.name)}" required>`)}
-      ${field('Type', sel('type', TYPES, c.type))}
-      ${field('Color', sel('color', COLORS, c.color, true))}
-      ${field('Level', `<input name="level" type="number" min="0" inputmode="numeric" value="${c.level ?? ''}" ${cl ? 'disabled' : ''}>`)}
-      ${field('Cost', `<input name="cost" type="number" min="0" inputmode="numeric" value="${c.cost ?? ''}" ${cl ? 'disabled' : ''}>`)}
-      ${field('Power', `<input name="power" type="number" min="0" step="500" inputmode="numeric" value="${c.power ?? ''}" ${ch ? '' : 'disabled'}>`)}
-      ${field('Soul', `<input name="soul" type="number" min="0" max="5" inputmode="numeric" value="${c.soul ?? ''}" ${ch ? '' : 'disabled'}>`)}
-      ${field('Rarity', `<input name="rarity" value="${esc((c.rarities && c.rarities[0]) || c.rarity || '')}">`)}
-      ${field('Illustrator', `<input name="illustrator" value="${esc(c.illustrator || '')}">`)}
-      ${field('Triggers (comma separated)', `<input name="triggers" list="edit-trig" value="${esc((c.triggers || []).join(', '))}">`)}
-      ${field('Traits (comma separated)', `<input name="traits" value="${esc((c.traits || []).join(', '))}">`)}
-    </div>
-    <label class="check"><input name="counter" type="checkbox" ${c.counter ? 'checked' : ''} ${cl ? 'disabled' : ''}> Counter</label>
-    ${field('Card text (one ability per line)', `<textarea name="effect" rows="6">${esc((c.effect || []).join('\n'))}</textarea>`)}
-    <datalist id="edit-trig">${TRIGGERS.map((t) => `<option value="${t}">`).join('')}</datalist>
-    <div class="toolbar"><button class="btn primary" type="submit">Save changes</button><button class="btn" type="button" data-cancel>Cancel</button></div>
-    <p class="muted" id="edit-err" role="status"></p></form>`;
-}
-
 export function setFormHtml(s, types) {
   return `<form class="panel edit-form" id="edit-form" autocomplete="off"><h2>Edit set</h2>
     <div class="fields">

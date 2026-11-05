@@ -1,5 +1,6 @@
 // What changed, newest first. `from` is the build number that first had the change (the number after "1." in the version).
 export const CHANGELOG = [
+  { from: 63, notes: ['The Edit card option was removed. Editing a set and Use as main art stay.'] },
   { from: 60, notes: ['Pick which artwork a card uses: on a card with alternate art, tap Use as main art. Print PDF and deck pictures then use it.'] },
   { from: 58, notes: ['You can now edit imported cards and sets: open a card and tap Edit card, or open a set and tap Edit set.'] },
   { from: 57, notes: ['Deck picture background now follows the accent colour.'] },
