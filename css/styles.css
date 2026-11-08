@@ -468,3 +468,5 @@ body[data-page="home"] .bar { justify-content: space-between; }
 .edit-form input:disabled, .edit-form select:disabled { opacity: .5; }
 #edit-area { margin-top: 16px; }
 .manage-zone #edit-area { margin: 0 0 10px; }
+.deck-find .set-pick { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+.deck-find .set-pick select { flex: 1; min-width: 0; }

@@ -94,7 +94,7 @@ function editor({ db, path }, byNumber) {
   if (!deck) return { title: 'Deck not found', html: `<div class="container">${emptyState('Deck not found', 'This deck does not exist on this device. It may have been deleted.', '<a class="btn primary" href="#/decks">Back to decks</a>')}</div>` };
 
   const facets = buildFacets(db.cards);
-  const search = { q: '', colors: [], types: [], pageSize: 30 };
+  const search = { q: '', colors: [], types: [], sets: [], pageSize: 30 };
   let pane = 'cards', note = '', noteTimer = 0;
 
   const html = `<div class="container wide">
@@ -110,6 +110,7 @@ function editor({ db, path }, byNumber) {
       <section class="deck-find" aria-label="Find cards">
         <form id="dq" role="search" autocomplete="off"><label class="sr-narrow" for="dsearch">Search cards</label>
           <input id="dsearch" type="search" placeholder="Search cards to add…"></form>
+        <label class="sel set-pick">Set <select id="dset"><option value="">All sets</option>${[...db.sets].sort((a, b) => a.name.localeCompare(b.name)).map((s) => `<option value="${esc(s.code)}">${esc(s.name)} (${s.cardCount ?? ''})</option>`).join('')}</select></label>
         <div class="chips" id="dfilters"></div>
         <div id="dresults"></div>
       </section>
@@ -146,7 +147,7 @@ function editor({ db, path }, byNumber) {
           + facets.types.map((t) => chip(t.value, `data-ft="${esc(t.value)}"`, search.types.includes(t.value))).join('');
       }
       function drawResults() {
-        const r = searchCards(db.cards, { q: search.q, colors: search.colors, types: search.types, pageSize: search.pageSize });
+        const r = searchCards(db.cards, { q: search.q, colors: search.colors, types: search.types, sets: search.sets, pageSize: search.pageSize });
         const rows = r.items.map((c) => {
           const n = countOf(deck, c.number), ok = canAdd(deck, c, byNumber);
           const meta = [c.number, c.type === 'Climax' ? 'Climax' : `Lv ${c.level ?? '–'} · cost ${c.cost ?? '–'}${typeof c.power === 'number' ? ` · ${c.power}` : ''}`].join(' · ');
@@ -201,6 +202,7 @@ function editor({ db, path }, byNumber) {
       /* ---- events ---- */
       let t; $('#dsearch').addEventListener('input', (e) => { clearTimeout(t); t = setTimeout(() => { search.q = e.target.value; search.pageSize = 30; drawResults(); }, 140); });
       $('#dq').addEventListener('submit', (e) => e.preventDefault());
+      $('#dset').addEventListener('change', (e) => { search.sets = e.target.value ? [e.target.value] : []; search.pageSize = 30; drawResults(); });
       $('#dname').addEventListener('input', (e) => { deck = { ...deck, name: e.target.value }; persist(); document.title = `${deck.name || 'Deck'} · Weiss Schwarz Card Wiki`; });
       root.addEventListener('click', (e) => {
         const b = e.target.closest('button'); if (!b) return;
