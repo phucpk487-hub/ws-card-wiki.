@@ -95,7 +95,7 @@ function editor({ db, path }, byNumber) {
 
   const facets = buildFacets(db.cards);
   const search = { q: '', colors: [], types: [], sets: [], pageSize: 30 };
-  let pane = 'cards', note = '', noteTimer = 0;
+  let pane = 'deck', note = '', noteTimer = 0;
 
   const html = `<div class="container wide">
     <nav class="crumbs" aria-label="Breadcrumb"><a href="#/">Home</a> / <a href="#/decks">Decks</a> / <span>${esc(deck.name)}</span></nav>
@@ -105,8 +105,8 @@ function editor({ db, path }, byNumber) {
       <span id="saved" class="muted small" role="status"></span>
     </div>
     ${storageNote()}
-    <div class="deck-tabs" role="tablist"><button role="tab" class="seg-btn" data-pane="cards" aria-pressed="true">Find cards</button><button role="tab" class="seg-btn" data-pane="deck" aria-pressed="false">Deck <span id="tabcount"></span></button></div>
-    <div class="deck-layout show-cards" id="layout">
+    <div class="deck-tabs" role="tablist"><button role="tab" class="seg-btn" data-pane="deck" aria-pressed="true">Deck <span id="tabcount"></span></button><button role="tab" class="seg-btn" data-pane="cards" aria-pressed="false">Find cards</button></div>
+    <div class="deck-layout show-deck" id="layout">
       <section class="deck-find" aria-label="Find cards">
         <form id="dq" role="search" autocomplete="off"><label class="sr-narrow" for="dsearch">Search cards</label>
           <input id="dsearch" type="search" placeholder="Search cards to add…"></form>
