@@ -25,6 +25,12 @@ Before you publish to a store, change `appId` in `capacitor.config.json` (now `a
 * Saving a file (backup, print PDF) inside the phone app writes straight to the Downloads folder (then Documents), and only falls back to the share sheet if the phone refuses. Not yet tried on a real phone.
 * Updating: every build is signed with the same key (your private key, stored only in the ANDROID_KEYSTORE_B64 and ANDROID_KEYSTORE_PASSWORD repository secrets; keep a copy of it, because losing it means one more uninstall and reinstall) and numbered by build, so a new APK installs over the old one and keeps your sets and decks. The first install after this change needs the old app removed once.
 
+## Google Play
+* **Actions > Build Play Store bundle > Run workflow** builds a signed release `.aab` (same keystore secrets, alias `wswiki`) and attaches it to the run under *Artifacts*. This build sets `STORE = true` in `js/version.js`, which turns off the GitHub update check and download links (Google Play forbids apps that update themselves outside the store). The APK build keeps them.
+* `docs/privacy.html` is the privacy policy Play Console asks for. It needs a public URL and a contact email (see the comment inside). Update it if the app ever starts sending data anywhere. The *APK* build still contacts GitHub for update checks; the *Play* build does not.
+* A new personal developer account must run a closed test (12 testers, 14 days) before production access.
+* Decide the final `appId` before the first upload: it can never be changed afterwards, and a different id installs as a separate app (your sets and decks do not carry over).
+
 ## Not yet done
-* A real app icon and splash screen (placeholder icon in `icons/icon.svg`; generate with `@capacitor/assets`).
-* A signed release build for the Play Store (the workflow makes a debug build for installing directly).
+* A real app icon and splash screen (placeholder icon in `icons/icon.svg`; generate with `@capacitor/assets`). Play also needs a 512x512 icon and a feature graphic for the store listing.
+* The release bundle workflow has not been run yet; the first run may need small fixes.

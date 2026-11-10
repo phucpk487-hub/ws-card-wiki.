@@ -2,3 +2,4 @@
 export const VERSION = 'dev';
 export const BUILD = 0;
 export const COMMIT = '';
+export const STORE = false; // true only in the Google Play build (.github/workflows/android-release.yml)

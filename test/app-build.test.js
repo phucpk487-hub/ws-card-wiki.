@@ -19,3 +19,12 @@ test('capacitor config points at the build folder', () => {
   const c = JSON.parse(readFileSync(new URL('../capacitor.config.json', import.meta.url), 'utf8'));
   assert.equal(c.webDir, 'www'); assert.match(c.appId, /^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)+$/i);
 });
+
+test('only the Google Play build turns off self-update (Play forbids updating outside the store)', () => {
+  const v = readFileSync(new URL('../js/version.js', import.meta.url), 'utf8');
+  assert.match(v, /export const STORE = false/);
+  const rel = readFileSync(new URL('../.github/workflows/android-release.yml', import.meta.url), 'utf8');
+  assert.match(rel, /export const STORE = true/);
+  const apk = readFileSync(new URL('../.github/workflows/android.yml', import.meta.url), 'utf8');
+  assert.doesNotMatch(apk, /STORE = true/);
+});

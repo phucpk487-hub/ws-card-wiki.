@@ -1,4 +1,7 @@
-import { VERSION, BUILD, COMMIT } from '../version.js';
+import * as V from '../version.js';
+const { VERSION, BUILD, COMMIT } = V;
+// Google Play forbids an app from updating itself outside the store, so the store build (STORE = true) never looks for or links to a download.
+const STORE = V.STORE === true;
 import { CHANGELOG } from '../changelog.js';
 import { whatsNew, checkForUpdate, RELEASES_PAGE } from './updates.js';
 
@@ -24,12 +27,14 @@ export function initUpdates() {
   const foot = document.getElementById('app-version');
   if (BUILD === 0) { if (foot) foot.textContent = 'Version: development (web)'; return; }
   if (foot) {
-    foot.innerHTML = `Version ${esc(VERSION)}${COMMIT ? ` · ${esc(COMMIT)}` : ''} · <button class="linklike" type="button" data-notes>What's new</button> · <button class="linklike" type="button" data-check>Check for updates</button><span data-checkmsg></span>`;
+    foot.innerHTML = `Version ${esc(VERSION)}${COMMIT ? ` · ${esc(COMMIT)}` : ''} · <button class="linklike" type="button" data-notes>What's new</button> ${STORE ? '' : '· <button class="linklike" type="button" data-check>Check for updates</button>'}<span data-checkmsg></span>`;
     foot.querySelector('[data-notes]').onclick = () => showNotes(CHANGELOG.filter((e) => e.from <= BUILD).slice(0, 4), 'Recent changes');
   }
   const fresh = whatsNew(CHANGELOG, get(), BUILD);
   if (fresh.length) showNotes(fresh, `What's new in ${VERSION}`);
   set(BUILD);
+
+  if (STORE) return; // no update check, no download links in the Play Store build
 
   const card = (u) => {
     if (document.querySelector('#update-bar [data-update]')) return;
