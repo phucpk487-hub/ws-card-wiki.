@@ -1,5 +1,6 @@
 // What changed, newest first. `from` is the build number that first had the change (the number after "1." in the version).
 export const CHANGELOG = [
+  { from: 66, notes: ['New app icon: a hexagon with a fleur-de-lis, in the app header, as the browser icon and as the Android launcher icon.'] },
   { from: 65, notes: ['Decks: opening a deck now shows the deck list first; Find cards is the second tab.'] },
   { from: 64, notes: ['Decks: Find cards can be limited to one set (Set menu above the colour filters).'] },
   { from: 63, notes: ['The Edit card option was removed. Editing a set and Use as main art stay.'] },

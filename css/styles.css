@@ -44,8 +44,7 @@ main:focus { outline: none; }
 .brand-text { white-space: nowrap; }
 .brand { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text); }
 .brand:hover { text-decoration: none; }
-.logo { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 32px; height: 32px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: .85rem; }
-.logo span { opacity: .75; }
+.logo { display: block; flex: none; width: 32px; height: 32px; object-fit: contain; }
 .nav { display: flex; gap: 2px; margin-left: 8px; }
 .nav a { color: var(--muted); padding: 7px 10px; border-radius: 8px; font-weight: 500; }
 .nav a:hover { background: var(--surface-2); text-decoration: none; color: var(--text); }
@@ -352,7 +351,6 @@ select { height: var(--hit); }
 .pager .btn, .pager a, .pager button { min-width: var(--hit); }
 
 /* ── Refresh: quieter, more tool-like ── */
-.logo { border-radius: 4px; background: var(--text); color: var(--bg); }
 .page-title { font-size: 1.5rem; margin: 20px 0 4px; }
 .home .searchbar { margin-top: 8px; }
 .block { margin-top: 20px; }
