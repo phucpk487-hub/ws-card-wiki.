@@ -46,6 +46,8 @@ jobs:
       - name: Put the app icon into the Android project
         run: |
           cp -r android-icons/res/. android/app/src/main/res/
+          # the template's own adaptive icon points at its default drawables; ours uses the mipmap foreground and the colour
+          rm -f android/app/src/main/res/drawable/ic_launcher_background.xml android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml
           rm -f android/app/src/main/res/mipmap-*/ic_launcher_foreground.webp android/app/src/main/res/mipmap-*/ic_launcher*.webp 2>/dev/null || true
           ls android/app/src/main/res/mipmap-xxxhdpi android/app/src/main/res/mipmap-anydpi-v26 2>/dev/null
 
