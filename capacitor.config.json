@@ -1,6 +1,6 @@
 {
   "appId": "app.wsw.cardwiki",
-  "appName": "Weiss Schwarz Card Wiki",
+  "appName": "Weiss Tool Box",
   "webDir": "www",
   "server": { "androidScheme": "https" },
   "android": { "allowMixedContent": false },

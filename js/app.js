@@ -49,7 +49,7 @@ async function route() {
     const loader = ROUTES[key];
     if (!loader) {
       main.innerHTML = `<div class="container">${emptyState('Page not found', 'That page does not exist.', '<a class="btn primary" href="#/">Go home</a>')}</div>`;
-      document.title = 'Not found · Weiss Schwarz Card Wiki';
+      document.title = 'Not found · Weiss Tool Box';
       return;
     }
     const [mod, db] = await Promise.all([loader(), loadDb()]);
@@ -59,7 +59,7 @@ async function route() {
     const root = document.createElement('div'); // fresh element => no stale listeners
     root.innerHTML = page.html;
     main.replaceChildren(root);
-    document.title = `${page.title} · Weiss Schwarz Card Wiki`;
+    document.title = `${page.title} · Weiss Tool Box`;
     page.mount?.(root, { navigate, db });
     if (!history.state || history.state.i == null) history.replaceState({ i: ++stamp }, '');
     const back = fromHistory; fromHistory = false;
@@ -72,7 +72,7 @@ async function route() {
     console.error(err);
     main.innerHTML = `<div class="container">${errorState(err.message || 'Unknown error')}</div>`;
     main.querySelector('[data-retry]')?.addEventListener('click', route);
-    document.title = 'Error · Weiss Schwarz Card Wiki';
+    document.title = 'Error · Weiss Tool Box';
   }
 }
 

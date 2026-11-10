@@ -203,7 +203,7 @@ function editor({ db, path }, byNumber) {
       let t; $('#dsearch').addEventListener('input', (e) => { clearTimeout(t); t = setTimeout(() => { search.q = e.target.value; search.pageSize = 30; drawResults(); }, 140); });
       $('#dq').addEventListener('submit', (e) => e.preventDefault());
       $('#dset').addEventListener('change', (e) => { search.sets = e.target.value ? [e.target.value] : []; search.pageSize = 30; drawResults(); });
-      $('#dname').addEventListener('input', (e) => { deck = { ...deck, name: e.target.value }; persist(); document.title = `${deck.name || 'Deck'} · Weiss Schwarz Card Wiki`; });
+      $('#dname').addEventListener('input', (e) => { deck = { ...deck, name: e.target.value }; persist(); document.title = `${deck.name || 'Deck'} · Weiss Tool Box`; });
       root.addEventListener('click', (e) => {
         const b = e.target.closest('button'); if (!b) return;
         const d = b.dataset;

@@ -32,5 +32,5 @@ Before you publish to a store, change `appId` in `capacitor.config.json` (now `a
 * Decide the final `appId` before the first upload: it can never be changed afterwards, and a different id installs as a separate app (your sets and decks do not carry over).
 
 ## Not yet done
-* A real app icon and splash screen (placeholder icon in `icons/icon.svg`; generate with `@capacitor/assets`). Play also needs a 512x512 icon and a feature graphic for the store listing.
+* A splash screen. The app icon is an original soul-style flame (`icons/icon.svg`, `icons/icon-foreground.svg`); after changing either, run `tools/make-icons.sh` (needs `rsvg-convert`) and commit the new PNGs in `icons/` and `android-icons/`. Play also needs a 512x512 icon and a feature graphic for the store listing.
 * The release bundle workflow has not been run yet; the first run may need small fixes.

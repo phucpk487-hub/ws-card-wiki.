@@ -42,6 +42,12 @@ jobs:
           npx cap add android
           npx cap sync android
 
+      - name: Put the app icon into the Android project
+        run: |
+          cp -r android-icons/res/. android/app/src/main/res/
+          rm -f android/app/src/main/res/mipmap-*/ic_launcher_foreground.webp android/app/src/main/res/mipmap-*/ic_launcher*.webp 2>/dev/null || true
+          ls android/app/src/main/res/mipmap-xxxhdpi android/app/src/main/res/mipmap-anydpi-v26 2>/dev/null
+
       - name: Sign the release with the upload key
         env:
           KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
